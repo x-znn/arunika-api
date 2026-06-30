@@ -42,21 +42,33 @@ export default function HomePage() {
 
       <EndpointExplorer />
 
-      <section className="usage-panel">
-        <div>
-          <span className="section-label">LICENSE & USAGE</span>
-          <h2>Dipakai untuk proyek bot pribadi.</h2>
-          <p>
-            Pakai endpoint dengan wajar. Buat API key saat endpoint mulai dipakai publik,
-            lalu aktifkan statistik Upstash agar request bisa dipantau dari dashboard.
-          </p>
-        </div>
-        <ul>
-          <li><span>✓</span> Tanpa autentikasi saat API key belum diaktifkan</li>
-          <li><span>✓</span> Endpoint siap untuk request URL image</li>
-          <li><span>✓</span> Statistik tersedia saat Upstash tersambung</li>
-        </ul>
-      </section>
+      <section className="border border-neutral-300 bg-[#f5f3ee] p-6 md:p-10">
+  <p className="mb-4 text-sm font-extrabold uppercase tracking-[0.18em] text-[#f97316]">
+    Support
+  </p>
+
+  <h2 className="text-4xl font-black leading-none tracking-tight text-[#111827] md:text-6xl">
+    Butuh bantuan?
+  </h2>
+
+  <p className="mt-6 max-w-3xl text-lg leading-9 text-[#6b7280]">
+    Hubungi saya lewat platform berikut.
+  </p>
+
+  <div className="mt-8 flex flex-col gap-4">
+    <a href="https://wa.me/6285348284121" target="_blank" rel="noreferrer" className="border border-neutral-300 bg-white px-5 py-4 text-xl font-bold text-[#111827] hover:border-[#f97316]">
+      WhatsApp — 085348284121
+    </a>
+
+    <a href="https://instagram.com/znn_id" target="_blank" rel="noreferrer" className="border border-neutral-300 bg-white px-5 py-4 text-xl font-bold text-[#111827] hover:border-[#f97316]">
+      Instagram — @znn_id
+    </a>
+
+    <a href="https://github.com/x-znn" target="_blank" rel="noreferrer" className="border border-neutral-300 bg-white px-5 py-4 text-xl font-bold text-[#111827] hover:border-[#f97316]">
+      GitHub — x-znn
+    </a>
+  </div>
+</section>
 
       <footer className="paper-footer">
         <span>ARUNIKA APIs. / v1.0</span>
