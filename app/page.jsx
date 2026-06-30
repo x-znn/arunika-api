@@ -52,7 +52,7 @@ export default function HomePage() {
           <p>
             Generate gambar, uji endpoint, dan pakai URL hasilnya langsung di
             script bot. Dibuat ringkas untuk kebutuhan command yang cepat dan
-            rapi.
+            simpel.
           </p>
 
           <div className="intro-actions">
@@ -186,7 +186,7 @@ export default function HomePage() {
       </section>
 
       <footer className="paper-footer">
-        <span>ARUNIKA APIs. / v1.0</span>
+        <span>ARUNIKA APIs. by @znn_id</span>
         <span>Built for WhatsApp bot workflows.</span>
       </footer>
 
