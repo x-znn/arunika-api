@@ -1,0 +1,25 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="720" fill="#F7F5F1"/>
+  <path d="M0 50H1200" stroke="#D7D2C7" stroke-width="2"/>
+  <path d="M0 220H1200" stroke="#D7D2C7" stroke-width="2"/>
+  <path d="M0 390H1200" stroke="#D7D2C7" stroke-width="2"/>
+  <path d="M0 560H1200" stroke="#D7D2C7" stroke-width="2"/>
+  <path d="M180 0V720" stroke="#D7D2C7" stroke-width="2"/>
+  <path d="M420 0V720" stroke="#D7D2C7" stroke-width="2"/>
+  <path d="M660 0V720" stroke="#D7D2C7" stroke-width="2"/>
+  <path d="M900 0V720" stroke="#D7D2C7" stroke-width="2"/>
+  <path d="M1140 0V720" stroke="#D7D2C7" stroke-width="2"/>
+  <circle cx="595" cy="350" r="174" fill="#FF7715"/>
+  <path d="M596 106C655 185 713 232 823 260C737 307 696 361 670 505C622 419 548 379 400 364C500 323 551 251 596 106Z" fill="#FFB000"/>
+  <path d="M252 502C362 454 426 430 513 359C510 473 579 541 687 604C546 619 416 623 252 502Z" fill="#151929"/>
+  <path d="M721 174C820 138 959 172 1050 249C950 272 877 336 832 427C792 332 759 261 721 174Z" fill="#252C50"/>
+  <path d="M149 217C194 165 266 141 332 152C305 215 316 279 364 342C293 340 228 304 149 217Z" fill="#00B894"/>
+  <path d="M908 463C984 426 1076 431 1150 489C1086 520 1034 569 1005 643C956 580 926 526 908 463Z" fill="#E94B35"/>
+  <circle cx="594" cy="350" r="95" fill="#F7F5F1"/>
+  <path d="M546 310H645" stroke="#151929" stroke-width="22" stroke-linecap="round"/>
+  <path d="M546 371H616" stroke="#151929" stroke-width="22" stroke-linecap="round"/>
+  <rect x="64" y="64" width="196" height="52" rx="8" fill="#151929"/>
+  <text x="87" y="98" fill="#F7F5F1" font-family="monospace" font-size="24" font-weight="700">ARUNIKA / V1</text>
+  <rect x="895" y="572" width="240" height="58" rx="12" fill="#F7F5F1" stroke="#151929" stroke-width="3"/>
+  <text x="923" y="609" fill="#151929" font-family="monospace" font-size="22" font-weight="700">MAKE • SEND • REPEAT</text>
+</svg>
