@@ -1,85 +1,67 @@
+import Link from "next/link"
+import Nav from "./components/Nav"
+import EndpointExplorer from "./components/EndpointExplorer"
+
 export default function HomePage() {
   return (
-    <main style={{
-      minHeight: "100vh",
-      background: "#09090b",
-      color: "#ffffff",
-      padding: "42px 24px",
-      fontFamily: "Arial, sans-serif"
-    }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <p style={{ color: "#8b5cf6", fontWeight: 700, letterSpacing: 2 }}>
-          ARUNIKA / API
-        </p>
+    <main className="paper-site">
+      <Nav />
 
-        <h1 style={{ fontSize: 42, margin: "12px 0" }}>
-          Simple API untuk Bot WhatsApp.
-        </h1>
-
-        <p style={{ color: "#a1a1aa", lineHeight: 1.7, maxWidth: 650 }}>
-          Endpoint gambar, playground, dokumentasi, dan statistik request
-          untuk kebutuhan bot WhatsApp kamu.
-        </p>
-
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-          gap: 14,
-          marginTop: 36
-        }}>
-          <a href="/playground" style={cardStyle}>
-            <b>Playground</b>
-            <small>Uji endpoint IG Note langsung</small>
-          </a>
-
-          <a href="/docs" style={cardStyle}>
-            <b>Documentation</b>
-            <small>Lihat parameter dan contoh URL</small>
-          </a>
-
-          <a href="/dashboard" style={cardStyle}>
-            <b>Dashboard</b>
-            <small>Lihat statistik API</small>
-          </a>
-
-          <a href="/api/health" style={cardStyle}>
-            <b>Health Check</b>
-            <small>Cek status server JSON</small>
-          </a>
+      <section className="intro-wrap">
+        <div className="intro-copy">
+          <span className="section-label">ARUNIKA API PLATFORM</span>
+          <h1>Simple API untuk<br />bot WhatsApp.</h1>
+          <p>
+            Generate gambar, uji endpoint, dan pakai URL hasilnya langsung di script bot.
+            Dibuat ringkas untuk kebutuhan command yang cepat dan rapi.
+          </p>
+          <div className="intro-actions">
+            <Link href="/docs" className="action-button action-button--solid">▣ Docs</Link>
+            <Link href="/playground" className="action-button">◉ Playground</Link>
+            <Link href="/dashboard" className="action-button">↗ Stats</Link>
+          </div>
         </div>
 
-        <section style={{
-          marginTop: 38,
-          padding: 20,
-          border: "1px solid #27272a",
-          borderRadius: 14,
-          background: "#111113"
-        }}>
-          <p style={{ color: "#8b5cf6", fontWeight: 700, marginTop: 0 }}>
-            GET · IG NOTE
-          </p>
+        <div className="intro-art">
+          <img src="/arunika-hero.svg" alt="Ilustrasi abstrak Arunika API" />
+        </div>
+      </section>
 
-          <code style={{
-            color: "#e4e4e7",
-            fontSize: 13,
-            wordBreak: "break-all"
-          }}>
-            /api/v1/ignote?name=Fauzann&text=Halo%20semua&time=8%20detik
-          </code>
-        </section>
-      </div>
+      <section className="request-strip">
+        <strong>LIVE</strong>
+        <div>
+          <span>API status</span>
+          <b>Online & ready</b>
+        </div>
+        <div>
+          <span>Image endpoint</span>
+          <b>PNG output</b>
+        </div>
+        <Link href="/api/health">Check status ↗</Link>
+      </section>
+
+      <EndpointExplorer />
+
+      <section className="usage-panel">
+        <div>
+          <span className="section-label">LICENSE & USAGE</span>
+          <h2>Dipakai untuk proyek bot pribadi.</h2>
+          <p>
+            Pakai endpoint dengan wajar. Buat API key saat endpoint mulai dipakai publik,
+            lalu aktifkan statistik Upstash agar request bisa dipantau dari dashboard.
+          </p>
+        </div>
+        <ul>
+          <li><span>✓</span> Tanpa autentikasi saat API key belum diaktifkan</li>
+          <li><span>✓</span> Endpoint siap untuk request URL image</li>
+          <li><span>✓</span> Statistik tersedia saat Upstash tersambung</li>
+        </ul>
+      </section>
+
+      <footer className="paper-footer">
+        <span>ARUNIKA APIs. / v1.0</span>
+        <span>Built for WhatsApp bot workflows.</span>
+      </footer>
     </main>
   )
-}
-
-const cardStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-  padding: 18,
-  borderRadius: 14,
-  textDecoration: "none",
-  color: "#ffffff",
-  background: "#16161a",
-  border: "1px solid #29292f"
 }
