@@ -105,6 +105,7 @@ async function getRoom(chatId) {
 }
 
 async function saveRoom(room) {
+  room.boardVersion = Math.max(0, Math.floor(Number(room.boardVersion) || 0)) + 1
   room.updatedAt = nowSeconds()
   await redis("SET", [keyFor(room.chatId), JSON.stringify(room)])
   return room
