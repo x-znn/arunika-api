@@ -129,7 +129,6 @@ export default function HomePage() {
             <span className="support-card__body">
               <small>FAST RESPONSE</small>
               <strong>WhatsApp</strong>
-              <em>085348284121</em>
             </span>
 
             <span className="support-card__arrow">
@@ -151,7 +150,6 @@ export default function HomePage() {
             <span className="support-card__body">
               <small>SOCIAL</small>
               <strong>Instagram</strong>
-              <em>@znn_id</em>
             </span>
 
             <span className="support-card__arrow">
@@ -173,7 +171,6 @@ export default function HomePage() {
             <span className="support-card__body">
               <small>SOURCE CODE</small>
               <strong>GitHub</strong>
-              <em>x-znn</em>
             </span>
 
             <span className="support-card__arrow">
