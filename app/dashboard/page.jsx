@@ -6,26 +6,31 @@ export const dynamic = "force-dynamic"
 export default async function DashboardPage() {
   const stats = await getApiStats()
   const connected = stats.connected
+  const number = (value) => connected ? value.toLocaleString("id-ID") : "—"
+
   return (
-    <main>
+    <main className="paper-site">
       <Nav />
-      <section className="page-hero section-shell compact">
-        <div className="eyebrow">DASHBOARD / LIVE DATA</div>
-        <h1>API activity overview.</h1>
-        <p>Statistik request tersimpan di Upstash Redis saat environment variable sudah diisi.</p>
+      <section className="page-intro">
+        <span className="section-label">API ANALYTICS</span>
+        <h1>Dashboard.</h1>
+        <p>Ringkasan endpoint dan request. Hubungkan Upstash agar angkanya tercatat permanen.</p>
       </section>
-      <section className="section-shell dashboard-grid">
-        <article className="metric-card"><span>Total Requests</span><strong>{connected ? stats.total.toLocaleString("id-ID") : "—"}</strong><small>{connected ? "seluruh endpoint" : "Upstash belum dihubungkan"}</small></article>
-        <article className="metric-card"><span>IG Note Requests</span><strong>{connected ? stats.ignote.toLocaleString("id-ID") : "—"}</strong><small>endpoint /api/v1/ignote</small></article>
-        <article className="metric-card"><span>Today</span><strong>{connected ? stats.today.toLocaleString("id-ID") : "—"}</strong><small>{stats.dayLabel}</small></article>
-        <article className="metric-card"><span>Service</span><strong className={connected ? "online" : "muted-strong"}>{connected ? "Online" : "Setup"}</strong><small>{connected ? "Redis connected" : "tambahkan env Upstash"}</small></article>
+
+      <section className="metric-grid">
+        <article><span>Total requests</span><strong>{number(stats.total)}</strong><small>seluruh endpoint</small></article>
+        <article><span>IG Note requests</span><strong>{number(stats.ignote)}</strong><small>/api/v1/ignote</small></article>
+        <article><span>Today</span><strong>{number(stats.today)}</strong><small>{stats.dayLabel}</small></article>
+        <article><span>Database</span><strong className={connected ? "metric-online" : "metric-setup"}>{connected ? "Live" : "Setup"}</strong><small>{connected ? "Upstash connected" : "Upstash belum tersambung"}</small></article>
       </section>
-      <section className="section-shell section-block">
-        <div className="dashboard-table">
-          <div className="table-head"><span>ENDPOINT</span><span>METHOD</span><span>REQUESTS</span><span>STATUS</span></div>
-          <div className="table-row"><code>/api/v1/ignote</code><span>GET</span><span>{connected ? stats.ignote.toLocaleString("id-ID") : "—"}</span><b>ONLINE</b></div>
-          <div className="table-row"><code>/api/health</code><span>GET</span><span>—</span><b>ONLINE</b></div>
-          <div className="table-row"><code>/api/stats</code><span>GET</span><span>—</span><b>ONLINE</b></div>
+
+      <section className="dashboard-paper">
+        <div className="dashboard-paper__heading"><span className="section-label">SERVICE STATUS</span><h2>Endpoint availability</h2></div>
+        <div className="status-list">
+          <div><span className="http-pill">GET</span><code>/api/v1/ignote</code><b>Online</b></div>
+          <div><span className="http-pill">GET</span><code>/api/v1/ignote/json</code><b>Online</b></div>
+          <div><span className="http-pill">GET</span><code>/api/health</code><b>Online</b></div>
+          <div><span className="http-pill">GET</span><code>/api/stats</code><b>Online</b></div>
         </div>
       </section>
     </main>
