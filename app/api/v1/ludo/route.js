@@ -1,6 +1,7 @@
 import {
   clean,
   createRoom,
+  createPlayer,
   normalizeRoom,
   activePlayers,
   currentPlayer,
@@ -10,10 +11,11 @@ import {
   moveToken,
   hasWon,
   log,
-  roomSummary,
   publicRoom,
   colorMeta,
-  LUDO_COLORS
+  LUDO_COLORS,
+  autoFocus,
+  nowSeconds
 } from "../../../../lib/ludo-core"
 
 export const runtime = "nodejs"
@@ -33,16 +35,21 @@ function corsHeaders() {
   }
 }
 
-function response(body, status = 200) {
-  return Response.json(body, { status, headers: corsHeaders() })
+function json(body, status = 200) {
+  return Response.json(body, {
+    status,
+    headers: corsHeaders()
+  })
 }
 
-function requiredKey(request, payload = {}) {
+function apiAllowed(request, payload = {}) {
   const expected = String(
     process.env.LUDO_API_KEY || process.env.API_KEY || ""
   ).trim()
 
-  if (!expected) return true
+  if (!expected) {
+    return true
+  }
 
   const provided = String(
     payload.apikey || request.headers.get("x-api-key") || ""
@@ -52,8 +59,7 @@ function requiredKey(request, payload = {}) {
 }
 
 function redisConfig() {
-  const url = String(process.env.UPSTASH_REDIS_REST_URL || "")
-    .replace(/\/$/, "")
+  const url = String(process.env.UPSTASH_REDIS_REST_URL || "").replace(/\/$/, "")
   const token = String(process.env.UPSTASH_REDIS_REST_TOKEN || "")
 
   if (!url || !token) {
@@ -65,8 +71,7 @@ function redisConfig() {
 
 async function redis(command, args = []) {
   const { url, token } = redisConfig()
-
-  const res = await fetch(url + "/pipeline", {
+  const result = await fetch(url + "/pipeline", {
     method: "POST",
     headers: {
       authorization: "Bearer " + token,
@@ -76,9 +81,9 @@ async function redis(command, args = []) {
     cache: "no-store"
   })
 
-  const data = await res.json()
+  const data = await result.json()
 
-  if (!res.ok || !Array.isArray(data) || data[0]?.error) {
+  if (!result.ok || !Array.isArray(data) || data[0]?.error) {
     throw new Error(data?.[0]?.error || "Upstash request gagal.")
   }
 
@@ -88,7 +93,9 @@ async function redis(command, args = []) {
 async function getRoom(chatId) {
   const raw = await redis("GET", [keyFor(chatId)])
 
-  if (!raw) return null
+  if (!raw) {
+    return null
+  }
 
   try {
     return normalizeRoom(JSON.parse(raw))
@@ -97,20 +104,24 @@ async function getRoom(chatId) {
   }
 }
 
-async function setRoom(room) {
-  room.updatedAt = Math.floor(Date.now() / 1000)
+async function saveRoom(room) {
+  room.updatedAt = nowSeconds()
   await redis("SET", [keyFor(room.chatId), JSON.stringify(room)])
   return room
 }
 
 function fail(message, status = 400) {
-  return { ok: false, status, message }
+  return {
+    ok: false,
+    status,
+    message
+  }
 }
 
-function ensureGroupPayload(payload) {
+function payloadBase(payload) {
   const room = clean(payload.room || payload.chatId, 180)
   const sender = clean(payload.sender, 180)
-  const name = clean(payload.name, 22)
+  const name = clean(payload.name, 22) || "Player"
 
   if (!room || !sender) {
     return fail("room dan sender wajib diisi.")
@@ -120,21 +131,44 @@ function ensureGroupPayload(payload) {
     ok: true,
     room,
     sender,
-    name: name || "Player"
+    name
+  }
+}
+
+function turnInfo(room) {
+  const player = currentPlayer(room)
+
+  return player
+    ? {
+        jid: player.jid,
+        name: player.name,
+        color: player.color,
+        activeToken: Number(player.activeToken) + 1
+      }
+    : null
+}
+
+function playerData(player) {
+  if (!player) {
+    return null
+  }
+
+  return {
+    jid: player.jid,
+    name: player.name,
+    color: player.color,
+    activeToken: Number(player.activeToken) + 1,
+    tokens: player.tokens.slice(),
+    surrendered: Boolean(player.surrendered)
   }
 }
 
 function turnText(room) {
   const player = currentPlayer(room)
 
-  if (!player) return "-"
-
-  return player.name + " (" + colorMeta(player.color).name + ")"
-}
-
-function winnerFromRemaining(room) {
-  const alive = activePlayers(room)
-  return alive.length === 1 ? alive[0] : null
+  return player
+    ? player.name + " (" + colorMeta(player.color).name + ")"
+    : "-"
 }
 
 function startRoom(room) {
@@ -150,22 +184,23 @@ function startRoom(room) {
   room.turn = 0
   room.pendingRoll = null
   room.lastRoll = null
+  room.winner = null
 
   room.players.forEach((player) => {
+    player.tokens = [-1, -1, -1, -1]
+    player.activeToken = 0
     player.sixStreak = 0
     player.surrendered = false
-    player.tokens = [-1, -1, -1, -1]
   })
 
   log(room, "Game dimulai. Giliran " + turnText(room) + ".")
 
   return {
     ok: true,
-    message:
-      "🎮 *LUDO DIMULAI*\n\n" +
-      "Giliran pertama: *" + turnText(room) + "*\n" +
-      "Ketik #ludo roll",
-    render: true
+    event: "start",
+    message: "Game dimulai.",
+    render: false,
+    next: turnInfo(room)
   }
 }
 
@@ -183,66 +218,70 @@ function rollRoom(room, sender) {
   if (room.pendingRoll) {
     return fail(
       "Kamu sudah mendapat dadu " +
-        room.pendingRoll.dice +
-        ". Pilih bidak: #ludo move <1-4>."
+      room.pendingRoll.dice +
+      ". Pilih pion dengan #ludo move <1-4>."
     )
   }
 
   const dice = Math.floor(Math.random() * 6) + 1
   room.lastRoll = dice
-  player.sixStreak = dice === 6 ? player.sixStreak + 1 : 0
+  player.sixStreak = dice === 6 ? Number(player.sixStreak || 0) + 1 : 0
 
   if (player.sixStreak >= 3) {
     player.sixStreak = 0
     room.pendingRoll = null
-    log(room, player.name + " mendapat tiga angka 6. Giliran hangus.")
     nextActiveTurn(room)
+
+    log(room, player.name + " mendapat tiga angka 6. Giliran hangus.")
 
     return {
       ok: true,
-      message:
-        "🎲 *" + player.name + " mendapat 6 untuk ketiga kali.*\n" +
-        "Giliran hangus.\n\n" +
-        "Giliran berikutnya: *" + turnText(room) + "*",
-      render: true
+      event: "skip",
+      message: "Tiga angka 6 berturut-turut. Giliran hangus.",
+      render: false,
+      dice,
+      actor: playerData(player),
+      next: turnInfo(room)
     }
   }
 
-  const legal = legalMoves(room, player, dice)
+  const legal = legalMoves(player, dice)
 
   if (!legal.length) {
-    room.pendingRoll = null
     player.sixStreak = 0
-    log(
-      room,
-      player.name +
-        " mendapat " +
-        dice +
-        ", tetapi tidak ada bidak yang dapat bergerak."
-    )
+    room.pendingRoll = null
     nextActiveTurn(room)
+
+    log(room, player.name + " mendapat " + dice + ", pion fokus tidak dapat bergerak.")
 
     return {
       ok: true,
-      message:
-        "🎲 *" + player.name + " mendapat " + dice + ".*\n" +
-        "Tidak ada bidak yang bisa bergerak.\n\n" +
-        "Giliran berikutnya: *" + turnText(room) + "*",
-      render: true
+      event: "skip",
+      message: "Pion fokus tidak dapat bergerak.",
+      render: false,
+      dice,
+      actor: playerData(player),
+      next: turnInfo(room)
     }
   }
 
-  room.pendingRoll = { sender, dice, legal }
+  room.pendingRoll = {
+    sender,
+    dice,
+    legal
+  }
+
   log(room, player.name + " mendapat dadu " + dice + ".")
 
   return {
     ok: true,
-    message:
-      "🎲 *" + player.name + " mendapat " + dice + "!*\n\n" +
-      "Bidak yang bisa digerakkan: " +
-      legal.map((number) => number + 1).join(", ") +
-      "\nKetik: *#ludo move <1-4>*",
-    render: true
+    event: "roll",
+    message: "Pilih pion.",
+    render: false,
+    dice,
+    actor: playerData(player),
+    legal: legal.map((index) => index + 1),
+    next: turnInfo(room)
   }
 }
 
@@ -266,32 +305,49 @@ function moveRoom(room, sender, tokenInput) {
   const tokenIndex = Number(tokenInput) - 1
 
   if (!Number.isInteger(tokenIndex) || tokenIndex < 0 || tokenIndex > 3) {
-    return fail("Pilih bidak 1 sampai 4.")
+    return fail("Pilih pion 1 sampai 4.")
   }
 
   if (!pending.legal.includes(tokenIndex)) {
-    return fail("Bidak itu tidak bisa digerakkan dengan angka dadu saat ini.")
-  }
+    const focus = Number(player.activeToken) + 1
 
-  const result = moveToken(room, player, tokenIndex, pending.dice)
-  const events = []
-
-  if (result.before === -1) {
-    events.push("Bidak " + (tokenIndex + 1) + " keluar dari rumah.")
-  } else if (result.after === 57) {
-    events.push("Bidak " + (tokenIndex + 1) + " mencapai finish.")
-  } else {
-    events.push(
-      "Bidak " + (tokenIndex + 1) + " maju " + pending.dice + " langkah."
+    return fail(
+      pending.dice === 6
+        ? "Pion itu tidak bisa digerakkan dengan angka 6 saat ini."
+        : "Tanpa angka 6, hanya Pion " + focus + " yang boleh berjalan."
     )
   }
 
-  if (result.captured.length) {
-    const targets = result.captured
-      .map((item) => item.player.name + " #" + (item.token + 1))
-      .join(", ")
+  const result = moveToken(room, player, tokenIndex, pending.dice)
 
-    events.push("💥 Memakan: " + targets + ".")
+  if (result.before === -1 && result.after !== 0) {
+    return fail("Pion tidak bisa keluar dari Home.")
+  }
+
+  const events = []
+
+  if (result.before === -1) {
+    events.push("Pion " + (tokenIndex + 1) + " keluar dari Home.")
+  } else if (result.after === 57) {
+    events.push("Pion " + (tokenIndex + 1) + " mencapai Finish.")
+  } else {
+    events.push("Pion " + (tokenIndex + 1) + " maju " + pending.dice + " langkah.")
+  }
+
+  const captures = result.captured.map((item) => ({
+    player: item.player,
+    token: item.token + 1,
+    returnedTo: "Home"
+  }))
+
+  if (captures.length) {
+    events.push(
+      "Capture: " +
+      captures
+        .map((item) => item.player.name + " • Pion " + item.token + " kembali ke Home")
+        .join(", ") +
+      "."
+    )
   }
 
   room.pendingRoll = null
@@ -308,36 +364,51 @@ function moveRoom(room, sender, tokenInput) {
 
     return {
       ok: true,
-      message:
-        "🏆 *" + player.name + " MENANG!*\n\n" +
-        events.join("\n"),
-      render: true
+      event: "win",
+      message: events.join(" "),
+      render: true,
+      dice: pending.dice,
+      actor: playerData(player),
+      token: tokenIndex + 1,
+      captures,
+      extraTurn: false,
+      next: null
     }
   }
 
-  if (pending.dice === 6) {
-    log(room, player.name + " mendapat giliran tambahan.")
+  const extraTurn = pending.dice === 6
 
-    return {
-      ok: true,
-      message:
-        "🎲 *" + player.name + " mendapat giliran tambahan!*\n\n" +
-        events.join("\n") +
-        "\n\nKetik #ludo roll",
-      render: true
-    }
+  if (!extraTurn) {
+    player.sixStreak = 0
+    nextActiveTurn(room)
   }
 
-  player.sixStreak = 0
-  nextActiveTurn(room)
-  log(room, events.join(" ") + " Giliran " + turnText(room) + ".")
+  const next = turnInfo(room)
+
+  log(
+    room,
+    events.join(" ") +
+      " Giliran " +
+      (next?.name || "-") +
+      "."
+  )
 
   return {
     ok: true,
-    message:
-      events.join("\n") +
-      "\n\nGiliran berikutnya: *" + turnText(room) + "*",
-    render: true
+    event: captures.length
+      ? "capture"
+      : result.after === 57
+        ? "finish"
+        : "move",
+    message: events.join(" "),
+    render: true,
+    dice: pending.dice,
+    actor: playerData(player),
+    token: tokenIndex + 1,
+    position: result.after,
+    captures,
+    extraTurn,
+    next
   }
 }
 
@@ -355,63 +426,66 @@ function joinRoom(room, sender, name) {
   }
 
   const color = LUDO_COLORS[room.players.length]
+  const player = createPlayer(sender, name, color.id)
+  room.players.push(player)
 
-  room.players.push({
-    jid: sender,
-    name,
-    color: color.id,
-    tokens: [-1, -1, -1, -1],
-    joinedAt: Math.floor(Date.now() / 1000),
-    sixStreak: 0,
-    surrendered: false
-  })
-
-  log(room, name + " bergabung sebagai " + color.name + ".")
+  log(room, name + " bergabung sebagai " + colorMeta(color.id).name + ".")
 
   return {
     ok: true,
-    message:
-      "✅ *" + name + " bergabung sebagai " + color.name + ".*\n\n" +
-      roomSummary(room),
-    render: true
+    event: "join",
+    message: name + " bergabung.",
+    render: false,
+    actor: playerData(player),
+    next: null
   }
 }
 
-function leaveRoom(room, sender) {
+function leaveWaitingRoom(room, sender) {
   const index = playerIndex(room, sender)
 
   if (index < 0) {
     return fail("Kamu tidak ada di room ini.")
   }
 
-  if (room.status === "waiting") {
-    const leaving = room.players[index]
+  const leaving = room.players[index]
+  room.players.splice(index, 1)
 
-    room.players.splice(index, 1)
-
-    room.players.forEach((player, playerIndex) => {
-      player.color = LUDO_COLORS[playerIndex].id
-    })
-
-    room.host = room.players[0]?.jid || ""
-
-    if (!room.players.length) {
-      return {
-        ok: true,
-        deleteRoom: true,
-        message: "Room Ludo dibubarkan karena semua pemain keluar."
-      }
-    }
-
-    log(room, leaving.name + " keluar dari room.")
-
+  if (!room.players.length) {
     return {
       ok: true,
-      message:
-        "🚪 *" + leaving.name + " keluar dari room.*\n\n" +
-        roomSummary(room),
-      render: true
+      event: "leave",
+      deleteRoom: true,
+      message: "Room dibubarkan.",
+      actor: playerData(leaving),
+      next: null
     }
+  }
+
+  room.players.forEach((player, playerPosition) => {
+    player.color = LUDO_COLORS[playerPosition].id
+    autoFocus(player)
+  })
+
+  room.host = room.players[0].jid
+  room.turn = 0
+  log(room, leaving.name + " keluar dari room.")
+
+  return {
+    ok: true,
+    event: "leave",
+    message: leaving.name + " keluar dari room.",
+    render: false,
+    actor: playerData(leaving),
+    next: null
+  }
+}
+
+function leavePlayingRoom(room, sender) {
+  const index = playerIndex(room, sender)
+
+  if (index < 0) {
+    return fail("Kamu tidak ada di game ini.")
   }
 
   const player = room.players[index]
@@ -423,19 +497,16 @@ function leaveRoom(room, sender) {
   player.surrendered = true
   player.tokens = [-1, -1, -1, -1]
   player.sixStreak = 0
+  player.activeToken = 0
+  room.pendingRoll = null
+  room.lastRoll = null
 
-  if (
-    room.pendingRoll &&
-    String(room.pendingRoll.sender || "") === String(sender)
-  ) {
-    room.pendingRoll = null
-  }
+  log(room, player.name + " keluar dari permainan.")
 
-  log(room, player.name + " menyerah dan keluar dari permainan.")
+  const survivors = activePlayers(room)
 
-  const winner = winnerFromRemaining(room)
-
-  if (winner) {
+  if (survivors.length === 1) {
+    const winner = survivors[0]
     room.status = "ended"
     room.winner = {
       jid: winner.jid,
@@ -445,44 +516,55 @@ function leaveRoom(room, sender) {
 
     return {
       ok: true,
-      message:
-        "🏆 *" + winner.name + " menang karena semua lawan menyerah.*",
-      render: true
+      event: "win",
+      message: winner.name + " menang karena lawan keluar.",
+      render: false,
+      actor: playerData(player),
+      next: null
     }
   }
 
-  if (room.turn === index) {
+  if (Number(room.turn) === index) {
     nextActiveTurn(room)
   }
 
   return {
     ok: true,
-    message:
-      "🏳️ *" + player.name + " menyerah.*\n\n" +
-      "Giliran: *" + turnText(room) + "*",
-    render: true
+    event: "leave",
+    message: player.name + " keluar dari game.",
+    render: false,
+    actor: playerData(player),
+    next: turnInfo(room)
   }
 }
 
+function leaveRoom(room, sender) {
+  if (room.status === "waiting") {
+    return leaveWaitingRoom(room, sender)
+  }
+
+  if (room.status === "playing") {
+    return leavePlayingRoom(room, sender)
+  }
+
+  return fail("Game ini sudah selesai. Host dapat membuat room baru.")
+}
+
 function resetRoom(room, sender) {
-  if (String(room.host || "") !== String(sender || "")) {
+  if (String(room.host) !== String(sender)) {
     return fail("Hanya host yang bisa mereset room Ludo.")
   }
 
   const host = room.players.find((player) => player.jid === sender)
-  const hostName = host?.name || "Host"
-  const count = activePlayers(room).length
 
   return {
     ok: true,
+    event: "reset",
     deleteRoom: true,
-    message:
-      "🔄 *LUDO ROOM RESET*\n\n" +
-      "Host          : " + hostName + "\n" +
-      "Players Out   : " + count + "\n" +
-      "Room Status   : Deleted\n\n" +
-      "Semua pemain telah dikeluarkan.\n" +
-      "Buat game baru dengan #ludo create"
+    message: "Room direset. Semua pemain dikeluarkan.",
+    actor: playerData(host),
+    playersOut: activePlayers(room).length,
+    next: null
   }
 }
 
@@ -498,35 +580,31 @@ export async function GET(request) {
     const url = new URL(request.url)
     const payload = Object.fromEntries(url.searchParams.entries())
 
-    if (!requiredKey(request, payload)) {
-      return response({ ok: false, message: "Invalid API key" }, 401)
+    if (!apiAllowed(request, payload)) {
+      return json({ ok: false, message: "Invalid API key" }, 401)
     }
 
     const roomId = clean(payload.room, 180)
 
     if (!roomId) {
-      return response(
-        { ok: false, message: "Parameter room wajib diisi." },
-        400
-      )
+      return json({ ok: false, message: "Parameter room wajib diisi." }, 400)
     }
 
     const room = await getRoom(roomId)
 
     if (!room) {
-      return response({ ok: false, message: "Room tidak ditemukan." }, 404)
+      return json({ ok: false, message: "Room tidak ditemukan." }, 404)
     }
 
-    return response({
+    return json({
       ok: true,
-      room: publicRoom(room),
-      text: roomSummary(room)
+      room: publicRoom(room)
     })
   } catch (error) {
-    return response(
-      { ok: false, message: error.message || "Ludo API error" },
-      500
-    )
+    return json({
+      ok: false,
+      message: error.message || "Ludo API error"
+    }, 500)
   }
 }
 
@@ -534,14 +612,14 @@ export async function POST(request) {
   try {
     const payload = await request.json().catch(() => ({}))
 
-    if (!requiredKey(request, payload)) {
-      return response({ ok: false, message: "Invalid API key" }, 401)
+    if (!apiAllowed(request, payload)) {
+      return json({ ok: false, message: "Invalid API key" }, 401)
     }
 
-    const base = ensureGroupPayload(payload)
+    const base = payloadBase(payload)
 
     if (!base.ok) {
-      return response(base, base.status || 400)
+      return json(base, base.status || 400)
     }
 
     const action = clean(payload.action, 24).toLowerCase() || "status"
@@ -549,30 +627,35 @@ export async function POST(request) {
     let result
 
     if (action === "create") {
-      if (room && room.status === "playing") {
-        return response(
-          { ok: false, message: "Masih ada Ludo game aktif di grup ini." },
-          409
-        )
+      if (room?.status === "playing") {
+        return json({
+          ok: false,
+          message: "Masih ada Ludo game aktif di grup ini. Gunakan #ludo reset jika kamu host."
+        }, 409)
+      }
+
+      if (room?.status === "waiting") {
+        return json({
+          ok: false,
+          message: "Room masih tersedia. Gunakan #ludo join atau #ludo reset."
+        }, 409)
       }
 
       room = createRoom(base.room, base.sender, base.name)
-
       result = {
         ok: true,
-        message:
-          "🎲 *ROOM LUDO DIBUAT*\n\n" +
-          "Host: *" + base.name + "*\n" +
-          "Ketik *#ludo join* untuk masuk.\n\n" +
-          roomSummary(room),
-        render: true
+        event: "create",
+        message: "Room dibuat.",
+        render: false,
+        actor: playerData(room.players[0]),
+        next: null
       }
     } else {
       if (!room) {
-        return response(
-          { ok: false, message: "Belum ada room. Gunakan #ludo create." },
-          404
-        )
+        return json({
+          ok: false,
+          message: "Belum ada room. Gunakan #ludo create."
+        }, 404)
       }
 
       if (action === "reset") {
@@ -580,7 +663,7 @@ export async function POST(request) {
       } else if (action === "join") {
         result = joinRoom(room, base.sender, base.name)
       } else if (action === "start") {
-        result = room.host !== base.sender
+        result = String(room.host) !== String(base.sender)
           ? fail("Hanya host yang bisa memulai game.")
           : startRoom(room)
       } else if (action === "roll") {
@@ -592,14 +675,18 @@ export async function POST(request) {
       } else if (action === "board") {
         result = {
           ok: true,
-          message: roomSummary(room),
-          render: true
+          event: "board",
+          message: "Board diperbarui.",
+          render: true,
+          next: turnInfo(room)
         }
       } else if (action === "status") {
         result = {
           ok: true,
-          message: roomSummary(room),
-          render: false
+          event: "status",
+          message: "Status game.",
+          render: false,
+          next: turnInfo(room)
         }
       } else {
         result = fail("Action tidak dikenal.")
@@ -607,25 +694,24 @@ export async function POST(request) {
     }
 
     if (!result.ok) {
-      return response(result, result.status || 400)
+      return json(result, result.status || 400)
     }
 
     if (result.deleteRoom) {
       await redis("DEL", [keyFor(base.room)])
     } else {
-      await setRoom(room)
+      await saveRoom(room)
     }
 
-    return response({
+    return json({
       ok: true,
-      message: result.message,
-      render: Boolean(result.render),
+      ...result,
       room: result.deleteRoom ? null : publicRoom(room)
     })
   } catch (error) {
-    return response(
-      { ok: false, message: error.message || "Ludo API error" },
-      500
-    )
+    return json({
+      ok: false,
+      message: error.message || "Ludo API error"
+    }, 500)
   }
 }
