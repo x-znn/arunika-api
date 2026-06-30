@@ -14,7 +14,7 @@ export default async function DashboardPage() {
       <section className="page-intro">
         <span className="section-label">API ANALYTICS</span>
         <h1>Dashboard.</h1>
-        <p>Ringkasan endpoint dan request. Hubungkan Upstash agar angkanya tercatat permanen.</p>
+        <p>Ringkasan endpoint dan request.</p>
       </section>
 
       <section className="metric-grid">
