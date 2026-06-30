@@ -21,7 +21,7 @@ export default async function DashboardPage() {
         <article><span>Total requests</span><strong>{number(stats.total)}</strong><small>seluruh endpoint</small></article>
         <article><span>IG Note requests</span><strong>{number(stats.ignote)}</strong><small>/api/v1/ignote</small></article>
         <article><span>Today</span><strong>{number(stats.today)}</strong><small>{stats.dayLabel}</small></article>
-        <article><span>Database</span><strong className={connected ? "metric-online" : "metric-setup"}>{connected ? "Live" : "Setup"}</strong><small>{connected ? "Upstash connected" : "Upstash belum tersambung"}</small></article>
+        <article><span>Database</span><strong className={connected ? "metric-online" : "metric-setup"}>{connected ? "Live" : "Setup"}</strong><small>{connected ? "connected" : "belum tersambung"}</small></article>
       </section>
 
       <section className="dashboard-paper">
