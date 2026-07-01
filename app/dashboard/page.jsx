@@ -8,7 +8,8 @@ const endpoints = [
     method: "GET",
     path: "ignote",
     status: "online"
-  {,
+  },
+  {
     method: "GET",
     path: "api-health",
     status: "Online"
