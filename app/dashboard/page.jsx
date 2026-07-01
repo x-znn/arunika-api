@@ -94,7 +94,7 @@ export default async function DashboardPage() {
         </article>
 
         <article>
-          <span>Game endpoints</span>
+          <span>Cacha game endpoints</span>
           <strong>{gameEndpoints}</strong>
           <small>Ludo dan Monopoly</small>
         </article>
