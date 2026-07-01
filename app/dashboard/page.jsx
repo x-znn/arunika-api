@@ -3,14 +3,82 @@ import { getApiStats } from "../../lib/stats"
 
 export const dynamic = "force-dynamic"
 
+const endpoints = [
+  {
+    method: "GET",
+    path: "/api/v1/ignote",
+    status: "Online"
+  },
+  {
+    method: "GET",
+    path: "/api/v1/ignote/json",
+    status: "Online"
+  },
+  {
+    method: "GET",
+    path: "/api/health",
+    status: "Online"
+  },
+  {
+    method: "GET",
+    path: "/api/stats",
+    status: "Online"
+  },
+  {
+    method: "POST",
+    path: "/api/v1/ludo",
+    status: "Online"
+  },
+  {
+    method: "GET",
+    path: "/api/v1/ludo?room={id_grup}",
+    status: "Online"
+  },
+  {
+    method: "GET",
+    path: "/api/v1/ludo/board?room={id_grup}",
+    status: "Online"
+  },
+  {
+    method: "POST",
+    path: "/api/v1/monopoly",
+    status: "Online"
+  },
+  {
+    method: "GET",
+    path: "/api/v1/monopoly?room={id_grup}",
+    status: "Online"
+  },
+  {
+    method: "GET",
+    path: "/api/v1/monopoly/board?room={id_grup}",
+    status: "Online"
+  },
+  {
+    method: "GET",
+    path: "/api/v1/monopoly/card?id={id_kartu}",
+    status: "Online"
+  }
+]
+
 export default async function DashboardPage() {
   const stats = await getApiStats()
   const connected = stats.connected
-  const number = (value) => connected ? value.toLocaleString("id-ID") : "—"
+
+  const number = (value) => {
+    return connected
+      ? Number(value || 0).toLocaleString("id-ID")
+      : "—"
+  }
+
+  const gameEndpoints = endpoints.filter((item) => {
+    return item.path.includes("/ludo") || item.path.includes("/monopoly")
+  }).length
 
   return (
     <main className="paper-site">
       <Nav />
+
       <section className="page-intro">
         <span className="section-label">API ANALYTICS</span>
         <h1>Dashboard.</h1>
@@ -18,19 +86,61 @@ export default async function DashboardPage() {
       </section>
 
       <section className="metric-grid">
-        <article><span>Total requests</span><strong>{number(stats.total)}</strong><small>seluruh endpoint</small></article>
-        <article><span>IG Note requests</span><strong>{number(stats.ignote)}</strong><small>/api/v1/ignote</small></article>
-        <article><span>Today</span><strong>{number(stats.today)}</strong><small>{stats.dayLabel}</small></article>
-        <article><span>Database</span><strong className={connected ? "metric-online" : "metric-setup"}>{connected ? "Live" : "Setup"}</strong><small>{connected ? "connected" : "belum tersambung"}</small></article>
+        <article>
+          <span>Total requests</span>
+          <strong>{number(stats.total)}</strong>
+          <small>seluruh endpoint</small>
+        </article>
+
+        <article>
+          <span>IG Note requests</span>
+          <strong>{number(stats.ignote)}</strong>
+          <small>/api/v1/ignote</small>
+        </article>
+
+        <article>
+          <span>Game endpoints</span>
+          <strong>{gameEndpoints}</strong>
+          <small>Ludo dan Monopoly</small>
+        </article>
+
+        <article>
+          <span>Database</span>
+          <strong
+            className={
+              connected
+                ? "metric-online"
+                : "metric-setup"
+            }
+          >
+            {connected ? "Live" : "Setup"}
+          </strong>
+          <small>
+            {connected
+              ? "connected"
+              : "belum tersambung"}
+          </small>
+        </article>
       </section>
 
       <section className="dashboard-paper">
-        <div className="dashboard-paper__heading"><span className="section-label">SERVICE STATUS</span><h2>Endpoint availability</h2></div>
+        <div className="dashboard-paper__heading">
+          <span className="section-label">SERVICE STATUS</span>
+          <h2>Endpoint availability</h2>
+        </div>
+
         <div className="status-list">
-          <div><span className="http-pill">GET</span><code>/api/v1/ignote</code><b>Online</b></div>
-          <div><span className="http-pill">GET</span><code>/api/v1/ignote/json</code><b>Online</b></div>
-          <div><span className="http-pill">GET</span><code>/api/health</code><b>Online</b></div>
-          <div><span className="http-pill">GET</span><code>/api/stats</code><b>Online</b></div>
+          {endpoints.map((endpoint) => (
+            <div key={endpoint.method + endpoint.path}>
+              <span className="http-pill">
+                {endpoint.method}
+              </span>
+
+              <code>{endpoint.path}</code>
+
+              <b>{endpoint.status}</b>
+            </div>
+          ))}
         </div>
       </section>
     </main>
