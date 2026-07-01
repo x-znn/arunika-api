@@ -41,13 +41,13 @@ export default function HomePage() {
         <div className="intro-art">
           <img
             src="/arunika-hero.svg"
-            alt="Ilustrasi abstrak Arunika API"
+            alt="Arunika API"
           />
         </div>
       </section>
 
       <section className="request-strip">
-        <strong>LIVE</strong>
+        <span>LIVE</span>
 
         <div>
           <span>API status</span>
