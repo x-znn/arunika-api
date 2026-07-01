@@ -47,7 +47,7 @@ export default function HomePage() {
       </section>
 
       <section className="request-strip">
-        <span>LIVE</span>
+        <b>LIVE</b>
 
         <div>
           <span>API status</span>
