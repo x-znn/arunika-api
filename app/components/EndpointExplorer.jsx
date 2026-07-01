@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 const ENDPOINTS = [
   {
@@ -300,13 +300,6 @@ export default function EndpointExplorer() {
     responseRef.current = responses
   }, [responses])
 
-  const endpointMap = useMemo(() => {
-    return ENDPOINTS.reduce((result, endpoint) => {
-      result[endpoint.id] = endpoint
-      return result
-    }, {})
-  }, [])
-
   function getUrl(endpoint) {
     const form = forms[endpoint.id] || {
       params: {},
@@ -345,9 +338,7 @@ export default function EndpointExplorer() {
 
   function toggleEndpoint(id) {
     setActiveId((current) => {
-      return current === id
-        ? ""
-        : id
+      return current === id ? "" : id
     })
   }
 
@@ -410,7 +401,8 @@ export default function EndpointExplorer() {
       const options = {
         method: endpoint.method,
         headers: {
-          Accept: "application/json, image/png, image/jpeg, image/webp, text/plain"
+          Accept:
+            "application/json, image/png, image/jpeg, image/webp, text/plain"
         }
       }
 
@@ -428,6 +420,7 @@ export default function EndpointExplorer() {
       }
 
       const response = await fetch(path, options)
+
       const contentType = String(
         response.headers.get("content-type") || ""
       ).toLowerCase()
@@ -455,13 +448,9 @@ export default function EndpointExplorer() {
       try {
         payload = rawText
           ? JSON.parse(rawText)
-          : {
-              message: "Respons API kosong."
-            }
+          : { message: "Respons API kosong." }
       } catch (error) {
-        payload = rawText || {
-          message: "Respons API kosong."
-        }
+        payload = rawText || { message: "Respons API kosong." }
       }
 
       setResponses((current) => ({
@@ -551,9 +540,7 @@ export default function EndpointExplorer() {
                   <strong>{endpoint.title}</strong>
                 </span>
 
-                <span className="endpoint-card__status">
-                  ONLINE
-                </span>
+                <span className="endpoint-card__status">ONLINE</span>
 
                 <span className="endpoint-card__toggle">
                   {isOpen ? "×" : "+"}
@@ -569,10 +556,7 @@ export default function EndpointExplorer() {
                       <button
                         type="button"
                         onClick={() =>
-                          copyText(
-                            url,
-                            endpoint.id + "-url"
-                          )
+                          copyText(url, endpoint.id + "-url")
                         }
                       >
                         {copied === endpoint.id + "-url"
@@ -581,9 +565,7 @@ export default function EndpointExplorer() {
                       </button>
                     </div>
 
-                    <code className="endpoint-url-value">
-                      {url}
-                    </code>
+                    <code className="endpoint-url-value">{url}</code>
                   </div>
 
                   <p className="endpoint-description">
@@ -597,10 +579,7 @@ export default function EndpointExplorer() {
                       <button
                         type="button"
                         onClick={() =>
-                          copyText(
-                            curl,
-                            endpoint.id + "-curl"
-                          )
+                          copyText(curl, endpoint.id + "-curl")
                         }
                       >
                         {copied === endpoint.id + "-curl"
@@ -637,9 +616,7 @@ export default function EndpointExplorer() {
 
                             <input
                               type="text"
-                              value={
-                                form.params[field.key] || ""
-                              }
+                              value={form.params[field.key] || ""}
                               placeholder={field.placeholder}
                               onChange={(event) =>
                                 updateParam(
@@ -662,10 +639,7 @@ export default function EndpointExplorer() {
                           value={form.body}
                           spellCheck="false"
                           onChange={(event) =>
-                            updateBody(
-                              endpoint.id,
-                              event.target.value
-                            )
+                            updateBody(endpoint.id, event.target.value)
                           }
                         />
                       </label>
@@ -685,9 +659,7 @@ export default function EndpointExplorer() {
                       onClick={() => execute(endpoint)}
                       disabled={isLoading}
                     >
-                      {isLoading
-                        ? "MEMPROSES..."
-                        : "▶ EXECUTE"}
+                      {isLoading ? "MEMPROSES..." : "▶ EXECUTE"}
                     </button>
                   </div>
 
@@ -698,9 +670,7 @@ export default function EndpointExplorer() {
                           <span>API RESPONSE</span>
 
                           <b
-                            className={getStatusClass(
-                              response.status
-                            )}
+                            className={getStatusClass(response.status)}
                           >
                             {response.status || "ERROR"}
                           </b>
@@ -756,9 +726,7 @@ export default function EndpointExplorer() {
                               : "response-code response-code--error"
                           }
                         >
-                          <code>
-                            {getPrettyJson(response.payload)}
-                          </code>
+                          <code>{getPrettyJson(response.payload)}</code>
                         </pre>
                       )}
                     </div>
@@ -771,9 +739,19 @@ export default function EndpointExplorer() {
       </div>
 
       <style>{`
+        .endpoint-explorer,
+        .endpoint-explorer *,
+        .endpoint-explorer *::before,
+        .endpoint-explorer *::after {
+          box-sizing: border-box;
+        }
+
         .endpoint-explorer {
           width: min(1120px, calc(100% - 40px));
+          max-width: 100%;
+          min-width: 0;
           margin: 72px auto;
+          overflow: hidden;
           border: 1px solid var(--line);
           background: var(--paper-soft);
         }
@@ -783,8 +761,13 @@ export default function EndpointExplorer() {
           align-items: end;
           justify-content: space-between;
           gap: 28px;
+          min-width: 0;
           padding: 34px;
           border-bottom: 1px solid var(--line);
+        }
+
+        .endpoint-explorer__head > div {
+          min-width: 0;
         }
 
         .endpoint-explorer__head h2 {
@@ -819,9 +802,13 @@ export default function EndpointExplorer() {
 
         .endpoint-list {
           display: grid;
+          min-width: 0;
+          max-width: 100%;
         }
 
         .endpoint-card {
+          min-width: 0;
+          max-width: 100%;
           border-bottom: 1px solid var(--line);
           background: rgba(255, 255, 255, 0.18);
         }
@@ -832,6 +819,7 @@ export default function EndpointExplorer() {
 
         .endpoint-card__summary {
           width: 100%;
+          min-width: 0;
           min-height: 86px;
           display: grid;
           grid-template-columns: auto minmax(0, 1fr) auto auto;
@@ -842,6 +830,7 @@ export default function EndpointExplorer() {
           background: transparent;
           border: 0;
           cursor: pointer;
+          overflow: hidden;
           text-align: left;
           transition: background 180ms ease;
         }
@@ -880,9 +869,12 @@ export default function EndpointExplorer() {
         }
 
         .endpoint-card__main small {
+          overflow: hidden;
           color: var(--orange-dark);
           font: 800 10px var(--mono);
           letter-spacing: 0.08em;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .endpoint-card__main code {
@@ -894,9 +886,12 @@ export default function EndpointExplorer() {
         }
 
         .endpoint-card__main strong {
+          overflow: hidden;
           color: var(--muted);
           font-size: 12px;
           font-weight: 600;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .endpoint-card__status {
@@ -918,8 +913,19 @@ export default function EndpointExplorer() {
         .endpoint-card__detail {
           display: grid;
           gap: 24px;
+          min-width: 0;
+          max-width: 100%;
           padding: 30px 34px 34px 94px;
+          overflow: hidden;
           background: rgba(255, 255, 255, 0.58);
+        }
+
+        .endpoint-url-block,
+        .endpoint-curl-block,
+        .try-panel,
+        .response-panel {
+          min-width: 0;
+          max-width: 100%;
         }
 
         .endpoint-block-head,
@@ -928,11 +934,13 @@ export default function EndpointExplorer() {
           align-items: center;
           justify-content: space-between;
           gap: 14px;
+          min-width: 0;
           margin-bottom: 10px;
         }
 
         .endpoint-block-head > span,
         .response-panel__head span {
+          min-width: 0;
           color: var(--ink);
           font: 800 13px var(--mono);
           letter-spacing: 0.03em;
@@ -940,12 +948,14 @@ export default function EndpointExplorer() {
 
         .endpoint-block-head button,
         .response-panel__head button {
+          flex: 0 0 auto;
           padding: 0;
           color: #657085;
           background: transparent;
           border: 0;
           cursor: pointer;
           font: 800 11px var(--mono);
+          white-space: nowrap;
         }
 
         .endpoint-block-head button:hover,
@@ -954,16 +964,19 @@ export default function EndpointExplorer() {
         }
 
         .endpoint-url-value {
+          width: 100%;
+          max-width: 100%;
           min-height: 58px;
-          display: flex;
-          align-items: center;
+          display: block;
           padding: 14px;
-          overflow-x: auto;
+          overflow: hidden;
           color: #48556a;
           background: #edf1f8;
           border: 1px solid #e5e9f0;
-          font: 13px/1.5 var(--mono);
-          white-space: nowrap;
+          font: 13px/1.65 var(--mono);
+          white-space: normal;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .endpoint-description {
@@ -976,15 +989,18 @@ export default function EndpointExplorer() {
 
         .endpoint-curl-block pre,
         .response-code {
+          width: 100%;
           max-width: 800px;
+          min-width: 0;
           margin: 0;
           padding: 17px;
-          overflow-x: auto;
+          overflow: hidden;
           color: #f7eee2;
           background: #28221f;
           border: 1px solid #15110f;
           font: 12px/1.65 var(--mono);
           white-space: pre-wrap;
+          overflow-wrap: anywhere;
           word-break: break-word;
         }
 
@@ -1033,11 +1049,13 @@ export default function EndpointExplorer() {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 14px;
+          min-width: 0;
         }
 
         .try-fields label,
         .body-input {
           display: grid;
+          min-width: 0;
           gap: 7px;
         }
 
@@ -1051,6 +1069,8 @@ export default function EndpointExplorer() {
         .try-fields input,
         .body-input textarea {
           width: 100%;
+          max-width: 100%;
+          min-width: 0;
           color: var(--ink);
           background: #ffffff;
           border: 1px solid var(--line);
@@ -1088,6 +1108,7 @@ export default function EndpointExplorer() {
         .execute-button {
           min-height: 58px;
           width: 100%;
+          max-width: 100%;
           color: #ffffff;
           background: var(--orange);
           border: 0;
@@ -1115,6 +1136,7 @@ export default function EndpointExplorer() {
           display: flex;
           align-items: center;
           gap: 10px;
+          min-width: 0;
         }
 
         .response-status {
@@ -1148,6 +1170,7 @@ export default function EndpointExplorer() {
           display: grid;
           gap: 12px;
           min-width: 0;
+          max-width: 100%;
           padding: 14px;
           overflow: hidden;
           border: 1px solid var(--line);
@@ -1156,6 +1179,7 @@ export default function EndpointExplorer() {
 
         .image-response img {
           width: min(100%, 520px);
+          max-width: 100%;
           max-height: 400px;
           display: block;
           margin: 0 auto;
@@ -1180,8 +1204,10 @@ export default function EndpointExplorer() {
 
         .image-response a {
           width: fit-content;
+          max-width: 100%;
           color: var(--orange-dark);
           font: 800 11px var(--mono);
+          overflow-wrap: anywhere;
         }
 
         @media (max-width: 760px) {
@@ -1214,6 +1240,12 @@ export default function EndpointExplorer() {
             padding: 22px 16px 26px;
           }
 
+          .endpoint-block-head,
+          .response-panel__head {
+            align-items: flex-start;
+            flex-wrap: wrap;
+          }
+
           .try-fields {
             grid-template-columns: 1fr;
           }
@@ -1223,10 +1255,17 @@ export default function EndpointExplorer() {
             font-size: 16px;
           }
 
-          .endpoint-url-value,
+          .endpoint-url-value {
+            font-size: 12px;
+            line-height: 1.7;
+          }
+
           .endpoint-curl-block pre,
           .response-code {
-            font-size: 11px;
+            width: 100%;
+            max-width: 100%;
+            padding: 13px;
+            font-size: 10px;
           }
 
           .image-response--portrait img {
@@ -1235,7 +1274,8 @@ export default function EndpointExplorer() {
           }
 
           .image-response--board img {
-            width: min(100%, 100%);
+            width: 100%;
+            max-width: 100%;
             max-height: 320px;
           }
         }
