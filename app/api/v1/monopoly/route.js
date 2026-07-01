@@ -124,12 +124,12 @@ async function deleteRoom(roomId) {
 }
 
 function eventResponse(room, event) {
-  return {
+  return json({
     ok: true,
     room: publicRoom(room),
     event: event || room.lastEvent || null,
     message: event?.message || room.lastEvent?.message || "OK"
-  }
+  })
 }
 
 export function OPTIONS() {
