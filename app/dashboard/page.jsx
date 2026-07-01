@@ -10,12 +10,12 @@ const endpoints = [
     status: "
   {
     method: "GET",
-    path: "api-health",
+    path: "api/health",
     status: "Online"
   },
   {
     method: "GET",
-    path: "api-stats",
+    path: "api/stats",
     status: "Online"
   },
   {
@@ -25,12 +25,12 @@ const endpoints = [
   },
   {
     method: "GET",
-    path: "ludo-room",
+    path: "ludo/room",
     status: "Online"
   },
   {
     method: "GET",
-    path: "ludo-board",
+    path: "ludo/board",
     status: "Online"
   },
   {
@@ -40,17 +40,17 @@ const endpoints = [
   },
   {
     method: "GET",
-    path: "monopoly-room",
+    path: "monopoly/room",
     status: "Online"
   },
   {
     method: "GET",
-    path: "monopoly-board",
+    path: "monopoly/board",
     status: "Online"
   },
   {
     method: "GET",
-    path: "monopoly-card",
+    path: "monopoly/card",
     status: "Online"
   }
 ]
