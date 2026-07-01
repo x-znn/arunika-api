@@ -62,7 +62,7 @@ export async function GET(request) {
         ...corsHeaders(),
         "content-type": "image/png",
         "content-length": String(png.length),
-        "cache-control": "no-store, max-age=0",
+        "cache-control": "public, max-age=31536000, immutable",
         "content-disposition": "inline; filename=monopoly-board.png"
       }
     })
