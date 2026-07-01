@@ -8,6 +8,7 @@ import {
   log,
   normalizeRoom,
   passRoom,
+  payRentRoom,
   playerIndex,
   publicRoom,
   rollRoom,
@@ -208,6 +209,13 @@ export async function POST(request) {
 
     if (action === "upgrade") {
       const result = upgradeRoom(room, sender)
+      if (!result.ok) return fail(result.message)
+      await saveRoom(room)
+      return respondRoom(room, result.event)
+    }
+
+    if (action === "pay") {
+      const result = payRentRoom(room, sender)
       if (!result.ok) return fail(result.message)
       await saveRoom(room)
       return respondRoom(room, result.event)
