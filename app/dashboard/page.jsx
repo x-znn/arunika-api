@@ -7,56 +7,50 @@ const endpoints = [
   {
     method: "GET",
     path: "ignote",
+    status: "
+  {
+    method: "GET",
+    path: "api-health",
     status: "Online"
   },
   {
     method: "GET",
-    path: "/api/v1/ignote/json",
-    status: "Online"
-  },
-  {
-    method: "GET",
-    path: "/api/health",
-    status: "Online"
-  },
-  {
-    method: "GET",
-    path: "/api/stats",
+    path: "api-stats",
     status: "Online"
   },
   {
     method: "POST",
-    path: "/api/v1/ludo",
+    path: "ludo",
     status: "Online"
   },
   {
     method: "GET",
-    path: "/api/v1/ludo?room={id_grup}",
+    path: "ludo-room",
     status: "Online"
   },
   {
     method: "GET",
-    path: "/api/v1/ludo/board?room={id_grup}",
+    path: "ludo-board",
     status: "Online"
   },
   {
     method: "POST",
-    path: "/api/v1/monopoly",
+    path: "monopoly",
     status: "Online"
   },
   {
     method: "GET",
-    path: "/api/v1/monopoly?room={id_grup}",
+    path: "monopoly-room",
     status: "Online"
   },
   {
     method: "GET",
-    path: "/api/v1/monopoly/board?room={id_grup}",
+    path: "monopoly-board",
     status: "Online"
   },
   {
     method: "GET",
-    path: "/api/v1/monopoly/card?id={id_kartu}",
+    path: "monopoly-card",
     status: "Online"
   }
 ]
@@ -93,9 +87,9 @@ export default async function DashboardPage() {
         </article>
 
         <article>
-          <span>IG Note requests</span>
+          <span>Canvas requests</span>
           <strong>{number(stats.ignote)}</strong>
-          <small>/api/v1/ignote</small>
+          <small>ignote</small>
         </article>
 
         <article>
