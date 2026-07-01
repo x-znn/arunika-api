@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic"
 const endpoints = [
   {
     method: "GET",
-    path: "/api/v1/ignote",
+    path: "ignote",
     status: "Online"
   },
   {
