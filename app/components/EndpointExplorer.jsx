@@ -1,29 +1,34 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 const ENDPOINTS = [
   {
-    id: "health",
+    id: "api-health",
+    name: "api-health",
     group: "SYSTEM",
     method: "GET",
     title: "Health Check",
     route: "/api/health",
-    description: "Mengecek apakah server Arunika API sedang aktif dan siap digunakan.",
+    description:
+      "Mengecek apakah server Arunika API sedang aktif dan siap digunakan.",
     params: []
   },
   {
-    id: "stats",
+    id: "api-stats",
+    name: "api-stats",
     group: "SYSTEM",
     method: "GET",
     title: "API Statistics",
     route: "/api/stats",
-    description: "Mengambil ringkasan statistik request API yang tercatat.",
+    description:
+      "Mengambil ringkasan statistik request API yang tercatat.",
     params: []
   },
   {
-    id: "ignote-image",
+    id: "ignote",
+    name: "ignote",
     group: "IMAGE",
     method: "GET",
     title: "IG Note Image",
@@ -31,6 +36,7 @@ const ENDPOINTS = [
     description:
       "Membuat gambar Instagram Note dalam format PNG. Hasilnya dapat langsung dikirim oleh bot WhatsApp.",
     image: true,
+    preview: "portrait",
     params: [
       {
         key: "name",
@@ -54,6 +60,7 @@ const ENDPOINTS = [
   },
   {
     id: "ignote-json",
+    name: "ignote-json",
     group: "IMAGE",
     method: "GET",
     title: "IG Note JSON",
@@ -77,6 +84,7 @@ const ENDPOINTS = [
   },
   {
     id: "ludo-action",
+    name: "ludo-action",
     group: "GAME · LUDO",
     method: "POST",
     title: "Ludo Action",
@@ -93,7 +101,8 @@ const ENDPOINTS = [
 }`
   },
   {
-    id: "ludo-status",
+    id: "ludo-room",
+    name: "ludo-room",
     group: "GAME · LUDO",
     method: "GET",
     title: "Ludo Room Status",
@@ -111,6 +120,7 @@ const ENDPOINTS = [
   },
   {
     id: "ludo-board",
+    name: "ludo-board",
     group: "GAME · LUDO",
     method: "GET",
     title: "Ludo Board Image",
@@ -118,6 +128,7 @@ const ENDPOINTS = [
     description:
       "Menghasilkan gambar papan Ludo terbaru sesuai room yang sedang dimainkan.",
     image: true,
+    preview: "board",
     params: [
       {
         key: "room",
@@ -129,6 +140,7 @@ const ENDPOINTS = [
   },
   {
     id: "monopoly-action",
+    name: "monopoly-action",
     group: "GAME · MONOPOLY",
     method: "POST",
     title: "Monopoly Action",
@@ -145,7 +157,8 @@ const ENDPOINTS = [
 }`
   },
   {
-    id: "monopoly-status",
+    id: "monopoly-room",
+    name: "monopoly-room",
     group: "GAME · MONOPOLY",
     method: "GET",
     title: "Monopoly Room Status",
@@ -163,6 +176,7 @@ const ENDPOINTS = [
   },
   {
     id: "monopoly-board",
+    name: "monopoly-board",
     group: "GAME · MONOPOLY",
     method: "GET",
     title: "Monopoly Board Image",
@@ -170,6 +184,7 @@ const ENDPOINTS = [
     description:
       "Menghasilkan gambar papan Monopoly Indonesia lengkap dengan pion, rumah, dan hotel.",
     image: true,
+    preview: "board",
     params: [
       {
         key: "room",
@@ -181,6 +196,7 @@ const ENDPOINTS = [
   },
   {
     id: "monopoly-card",
+    name: "monopoly-card",
     group: "GAME · MONOPOLY",
     method: "GET",
     title: "Monopoly Card Image",
@@ -188,6 +204,7 @@ const ENDPOINTS = [
     description:
       "Menghasilkan gambar kartu portrait Kesempatan atau Dana Umum.",
     image: true,
+    preview: "portrait",
     params: [
       {
         key: "id",
@@ -259,23 +276,29 @@ function getStatusClass(status) {
 
 export default function EndpointExplorer() {
   const [origin, setOrigin] = useState("")
-  const [activeId, setActiveId] = useState("health")
+  const [activeId, setActiveId] = useState("")
   const [forms, setForms] = useState(createInitialForms)
   const [responses, setResponses] = useState({})
   const [loading, setLoading] = useState({})
   const [copied, setCopied] = useState("")
 
+  const responseRef = useRef({})
+
   useEffect(() => {
     setOrigin(window.location.origin)
 
     return () => {
-      Object.values(responses).forEach((response) => {
+      Object.values(responseRef.current).forEach((response) => {
         if (response && response.objectUrl) {
           URL.revokeObjectURL(response.objectUrl)
         }
       })
     }
   }, [])
+
+  useEffect(() => {
+    responseRef.current = responses
+  }, [responses])
 
   const endpointMap = useMemo(() => {
     return ENDPOINTS.reduce((result, endpoint) => {
@@ -377,15 +400,11 @@ export default function EndpointExplorer() {
       [endpoint.id]: true
     }))
 
-    setResponses((current) => {
-      const oldResponse = current[endpoint.id]
+    const oldResponse = responses[endpoint.id]
 
-      if (oldResponse && oldResponse.objectUrl) {
-        URL.revokeObjectURL(oldResponse.objectUrl)
-      }
-
-      return current
-    })
+    if (oldResponse && oldResponse.objectUrl) {
+      URL.revokeObjectURL(oldResponse.objectUrl)
+    }
 
     try {
       const options = {
@@ -528,7 +547,7 @@ export default function EndpointExplorer() {
 
                 <span className="endpoint-card__main">
                   <small>{endpoint.group}</small>
-                  <code>{endpoint.route}</code>
+                  <code>{endpoint.name}</code>
                   <strong>{endpoint.title}</strong>
                 </span>
 
@@ -705,7 +724,17 @@ export default function EndpointExplorer() {
                       </div>
 
                       {response.type === "image" ? (
-                        <div className="image-response">
+                        <div
+                          className={
+                            "image-response" +
+                            (endpoint.preview === "portrait"
+                              ? " image-response--portrait"
+                              : "") +
+                            (endpoint.preview === "board"
+                              ? " image-response--board"
+                              : "")
+                          }
+                        >
                           <img
                             src={response.objectUrl}
                             alt={"Hasil " + endpoint.title}
@@ -859,7 +888,7 @@ export default function EndpointExplorer() {
         .endpoint-card__main code {
           overflow: hidden;
           color: var(--ink);
-          font: 800 14px var(--mono);
+          font: 800 15px var(--mono);
           text-overflow: ellipsis;
           white-space: nowrap;
         }
@@ -1118,18 +1147,35 @@ export default function EndpointExplorer() {
         .image-response {
           display: grid;
           gap: 12px;
-          padding: 16px;
+          min-width: 0;
+          padding: 14px;
+          overflow: hidden;
           border: 1px solid var(--line);
           background: #ffffff;
         }
 
         .image-response img {
-          width: min(100%, 700px);
-          max-height: 680px;
+          width: min(100%, 520px);
+          max-height: 400px;
           display: block;
+          margin: 0 auto;
           object-fit: contain;
           border: 1px solid var(--line);
           background: #f5f5f5;
+        }
+
+        .image-response--portrait {
+          justify-items: center;
+        }
+
+        .image-response--portrait img {
+          width: min(100%, 250px);
+          max-height: 360px;
+        }
+
+        .image-response--board img {
+          width: min(100%, 580px);
+          max-height: 420px;
         }
 
         .image-response a {
@@ -1161,7 +1207,7 @@ export default function EndpointExplorer() {
           }
 
           .endpoint-card__main code {
-            font-size: 12px;
+            font-size: 13px;
           }
 
           .endpoint-card__detail {
@@ -1172,10 +1218,25 @@ export default function EndpointExplorer() {
             grid-template-columns: 1fr;
           }
 
+          .try-fields input,
+          .body-input textarea {
+            font-size: 16px;
+          }
+
           .endpoint-url-value,
           .endpoint-curl-block pre,
           .response-code {
             font-size: 11px;
+          }
+
+          .image-response--portrait img {
+            width: min(100%, 220px);
+            max-height: 320px;
+          }
+
+          .image-response--board img {
+            width: min(100%, 100%);
+            max-height: 320px;
           }
         }
 
@@ -1204,6 +1265,11 @@ export default function EndpointExplorer() {
 
           .try-panel {
             padding: 16px;
+          }
+
+          .image-response--portrait img {
+            width: min(100%, 190px);
+            max-height: 280px;
           }
         }
       `}</style>
