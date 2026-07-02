@@ -188,6 +188,8 @@ export async function POST(request) {
     const roomId = String(payload.room || payload.chatId || "").trim()
     const sender = String(payload.sender || "").trim()
     const name = clean(payload.name, 22) || "Pemain"
+    const isGroupAdmin = Boolean(payload.isGroupAdmin)
+    const isOwner = Boolean(payload.isOwner)
 
     if (!roomId || !sender) {
       return fail("Data room atau pemain tidak lengkap.")
@@ -319,22 +321,27 @@ export async function POST(request) {
     }
 
     if (action === "reset" || action === "stop") {
-      if (String(room.host) !== String(sender)) {
-        return fail("Hanya host yang dapat mereset room.")
-      }
+  const isHost = String(room.host) === String(sender)
+  const canReset = isHost || isGroupAdmin || isOwner
 
-      await removeRoom(roomId)
+  if (!canReset) {
+    return fail(
+      "Hanya host, admin grup, atau owner bot yang dapat mereset room."
+    )
+  }
 
-      return json({
-        ok: true,
-        room: null,
-        event: {
-          type: "reset",
-          message: "Room Who Is The Spy dihapus."
-        },
-        message: "Room Who Is The Spy dihapus."
-      })
-    }
+  await removeRoom(roomId)
+
+  return json({
+    ok: true,
+    room: null,
+    event: {
+      type: "reset",
+      message: "Room Who Is The Spy dihapus."
+    },
+    message: "Room Who Is The Spy dihapus."
+  })
+}
 
     return fail("Aksi Who Is The Spy tidak dikenal.")
   } catch (error) {
