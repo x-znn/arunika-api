@@ -22,9 +22,15 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const PREFIX = "arunika:ludo:v1:room:"
+const FINAL_PREFIX = "arunika:ludo:v1:final:"
+const FINAL_ROOM_TTL_SECONDS = 90
 
 function keyFor(chatId) {
   return PREFIX + String(chatId)
+}
+
+function finalKeyFor(chatId) {
+  return FINAL_PREFIX + String(chatId)
 }
 
 function corsHeaders() {
@@ -108,6 +114,26 @@ async function saveRoom(room) {
   room.boardVersion = Math.max(0, Math.floor(Number(room.boardVersion) || 0)) + 1
   room.updatedAt = nowSeconds()
   await redis("SET", [keyFor(room.chatId), JSON.stringify(room)])
+  return room
+}
+
+async function removeRoom(chatId) {
+  await redis("DEL", [keyFor(chatId)])
+}
+
+async function saveFinalRoom(room) {
+  room.boardVersion =
+    Math.max(0, Math.floor(Number(room.boardVersion) || 0)) + 1
+
+  room.updatedAt = nowSeconds()
+
+  await redis("SET", [
+    finalKeyFor(room.chatId),
+    JSON.stringify(room),
+    "EX",
+    String(FINAL_ROOM_TTL_SECONDS)
+  ])
+
   return room
 }
 
@@ -551,19 +577,26 @@ function leaveRoom(room, sender) {
   return fail("Game ini sudah selesai. Host dapat membuat room baru.")
 }
 
-function resetRoom(room, sender) {
-  if (String(room.host) !== String(sender)) {
-    return fail("Hanya host yang bisa mereset room Ludo.")
+function resetRoom(room, sender, isGroupAdmin, isOwner) {
+  const isHost = String(room.host) === String(sender)
+  const canReset = isHost || Boolean(isGroupAdmin) || Boolean(isOwner)
+
+  if (!canReset) {
+    return fail(
+      "Hanya host, admin grup, atau owner bot yang dapat mereset room Ludo."
+    )
   }
 
-  const host = room.players.find((player) => player.jid === sender)
+  const actor = room.players.find((player) => {
+    return String(player.jid) === String(sender)
+  }) || null
 
   return {
     ok: true,
     event: "reset",
     deleteRoom: true,
     message: "Room direset. Semua pemain dikeluarkan.",
-    actor: playerData(host),
+    actor: playerData(actor),
     playersOut: activePlayers(room).length,
     next: null
   }
@@ -624,6 +657,8 @@ export async function POST(request) {
     }
 
     const action = clean(payload.action, 24).toLowerCase() || "status"
+    const isGroupAdmin = Boolean(payload.isGroupAdmin)
+    const isOwner = Boolean(payload.isOwner)
     let room = await getRoom(base.room)
     let result
 
@@ -660,7 +695,12 @@ export async function POST(request) {
       }
 
       if (action === "reset") {
-        result = resetRoom(room, base.sender)
+        result = resetRoom(
+          room,
+          base.sender,
+          isGroupAdmin,
+          isOwner
+        )
       } else if (action === "join") {
         result = joinRoom(room, base.sender, base.name)
       } else if (action === "start") {
@@ -698,8 +738,23 @@ export async function POST(request) {
       return json(result, result.status || 400)
     }
 
-    if (result.deleteRoom) {
-      await redis("DEL", [keyFor(base.room)])
+    const autoReset = Boolean(
+      !result.deleteRoom &&
+      room &&
+      room.status === "ended" &&
+      room.winner &&
+      room.winner.jid
+    )
+
+    const snapshot = room
+      ? publicRoom(room)
+      : null
+
+    if (autoReset) {
+      await saveFinalRoom(room)
+      await removeRoom(base.room)
+    } else if (result.deleteRoom) {
+      await removeRoom(base.room)
     } else {
       await saveRoom(room)
     }
@@ -707,7 +762,16 @@ export async function POST(request) {
     return json({
       ok: true,
       ...result,
-      room: result.deleteRoom ? null : publicRoom(room)
+      room: result.deleteRoom
+        ? null
+        : snapshot,
+      autoReset,
+      finalBoard: autoReset,
+      resetReason: autoReset
+        ? "winner"
+        : result.deleteRoom
+          ? "manual"
+          : null
     })
   } catch (error) {
     return json({
