@@ -1,4 +1,5 @@
 import {
+  bailRoom,
   buyRoom,
   clean,
   createPlayer,
@@ -13,7 +14,8 @@ import {
   publicRoom,
   rollRoom,
   startRoom,
-  upgradeRoom
+  upgradeRoom,
+  useJailCardRoom
 } from "../../../../lib/monopoly-core"
 
 export const runtime = "nodejs"
@@ -195,6 +197,20 @@ export async function POST(request) {
 
     if (action === "roll") {
       const result = rollRoom(room, sender)
+      if (!result.ok) return fail(result.message)
+      await saveRoom(room)
+      return respondRoom(room, result.event)
+    }
+
+    if (action === "bail") {
+      const result = bailRoom(room, sender)
+      if (!result.ok) return fail(result.message)
+      await saveRoom(room)
+      return respondRoom(room, result.event)
+    }
+
+    if (action === "card" || action === "use_jail_card") {
+      const result = useJailCardRoom(room, sender)
       if (!result.ok) return fail(result.message)
       await saveRoom(room)
       return respondRoom(room, result.event)
