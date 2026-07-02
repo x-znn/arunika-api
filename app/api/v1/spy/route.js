@@ -279,6 +279,14 @@ export async function POST(request) {
       const result = submitVote(room, sender, target)
       if (!result.ok) return fail(result.message)
 
+      if (room.status === "ended" && result.event?.result) {
+        await removeRoom(roomId)
+        return respondRoom(room, result.event, {
+          autoReset: true,
+          resetReason: "Game selesai dan room otomatis dihapus."
+        })
+      }
+
       await saveRoom(room)
       return respondRoom(room, result.event)
     }
@@ -286,6 +294,14 @@ export async function POST(request) {
     if (action === "leave") {
       const result = leaveRoom(room, sender)
       if (!result.ok) return fail(result.message)
+
+      if (room.status === "ended" && result.event?.result) {
+        await removeRoom(roomId)
+        return respondRoom(room, result.event, {
+          autoReset: true,
+          resetReason: "Game selesai dan room otomatis dihapus."
+        })
+      }
 
       if (!activePlayers(room).length) {
         await removeRoom(roomId)
