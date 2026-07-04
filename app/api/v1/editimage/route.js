@@ -40,34 +40,6 @@ function cleanText(value, max = 0) {
   return max > 0 ? text.slice(0, max) : text
 }
 
-function getApiKey(request, payload) {
-  const url = new URL(request.url)
-  return cleanText(
-    request.headers.get("x-api-key") ||
-      url.searchParams.get("apikey") ||
-      payload?.apikey ||
-      "",
-    300
-  )
-}
-
-function verifyEditApiKey(request, payload) {
-  const expected = cleanText(
-    process.env.EDITIMAGE_API_KEY || process.env.API_KEY || "",
-    300
-  )
-
-  if (!expected) {
-    return fail("EDITIMAGE_API_KEY atau API_KEY belum dikonfigurasi di server.", 500)
-  }
-
-  if (getApiKey(request, payload) !== expected) {
-    return fail("API key tidak valid.", 401)
-  }
-
-  return null
-}
-
 function isForbiddenIp(ip) {
   const type = isIP(ip)
 
@@ -325,8 +297,6 @@ export async function POST(request) {
     return fail("Body request harus berupa JSON yang valid.")
   }
 
-  const unauthorized = verifyEditApiKey(request, payload)
-  if (unauthorized) return unauthorized
 
   const imageUrl = cleanText(payload?.imageUrl || payload?.url || "", 2048)
   const prompt = cleanText(payload?.prompt || "", MAX_PROMPT_LENGTH)
