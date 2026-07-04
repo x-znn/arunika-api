@@ -60,6 +60,28 @@ const ENDPOINTS = [
       "/api/v1/ignote/json?name=zann&text=Halo%20semua"
   },
   {
+    id: "editimage",
+    name: "editimage",
+    group: "AI IMAGE",
+    method: "POST",
+    title: "AI Image Edit",
+    route: "/api/v1/editimage",
+    description:
+      "Mengedit gambar dari URL publik menggunakan prompt AI. Hasil respons langsung berupa file gambar PNG/JPG/WEBP.",
+    params: [
+      ["imageUrl", "URL publik gambar JPG, PNG, atau WEBP. Maksimum 8 MB."],
+      ["prompt", "Instruksi perubahan gambar, misalnya: ubah menjadi 3D cute."],
+      ["size", "Opsional: 1024x1024, 1536x1024, 1024x1536, 1792x1024, atau 1024x1792."],
+      ["apikey", "API key Arunika bila endpoint diproteksi."]
+    ],
+    example: `{
+  "imageUrl": "https://contoh.com/foto.jpg",
+  "prompt": "Ubah gambar menjadi ilustrasi 3D cute, pertahankan pose dan objek utama.",
+  "size": "1024x1024",
+  "apikey": "API_KEY_KAMU"
+}`
+  },
+  {
     id: "ludo-action",
     name: "ludo-action",
     group: "GAME · LUDO",
@@ -193,7 +215,7 @@ export default function DocsPage() {
         <h1>Docs.</h1>
 
         <p>
-          Dokumentasi endpoint Arunika API untuk image generator, Ludo, dan
+          Dokumentasi endpoint Arunika API untuk image generator, AI image edit, Ludo, dan
           Monopoly Indonesia.
         </p>
 
@@ -211,8 +233,8 @@ export default function DocsPage() {
       <section className="docs-overview">
         <article>
           <span>IMAGE</span>
-          <strong>IG Note</strong>
-          <small>Generate gambar PNG untuk bot WhatsApp.</small>
+          <strong>IG Note & AI Edit</strong>
+          <small>Generate atau edit gambar untuk bot WhatsApp.</small>
         </article>
 
         <article>
