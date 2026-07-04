@@ -95,8 +95,7 @@ const ENDPOINTS = [
     body: `{
   "imageUrl": "https://contoh.com/foto.jpg",
   "prompt": "Ubah gambar menjadi ilustrasi 3D cute, pertahankan pose dan objek utama.",
-  "size": "1024x1024",
-  "apikey": "API_KEY_KAMU"
+  "size": "1024x1024"
 }`,
     params: []
   },
