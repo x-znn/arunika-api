@@ -83,6 +83,24 @@ const ENDPOINTS = [
     ]
   },
   {
+    id: "editimage",
+    name: "editimage",
+    group: "AI IMAGE",
+    method: "POST",
+    title: "AI Image Edit",
+    route: "/api/v1/editimage",
+    description:
+      "Mengedit gambar dari URL publik berdasarkan prompt AI. Endpoint ini mengembalikan file gambar hasil edit secara langsung.",
+    image: true,
+    body: `{
+  "imageUrl": "https://contoh.com/foto.jpg",
+  "prompt": "Ubah gambar menjadi ilustrasi 3D cute, pertahankan pose dan objek utama.",
+  "size": "1024x1024",
+  "apikey": "API_KEY_KAMU"
+}`,
+    params: []
+  },
+  {
     id: "ludo-action",
     name: "ludo-action",
     group: "GAME · LUDO",
