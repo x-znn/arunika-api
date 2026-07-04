@@ -71,14 +71,12 @@ const ENDPOINTS = [
     params: [
       ["imageUrl", "URL publik gambar JPG, PNG, atau WEBP. Maksimum 8 MB."],
       ["prompt", "Instruksi perubahan gambar, misalnya: ubah menjadi 3D cute."],
-      ["size", "Opsional: 1024x1024, 1536x1024, 1024x1536, 1792x1024, atau 1024x1792."],
-      ["apikey", "API key Arunika bila endpoint diproteksi."]
+      ["size", "Opsional: 1024x1024, 1536x1024, 1024x1536, 1792x1024, atau 1024x1792."]
     ],
     example: `{
   "imageUrl": "https://contoh.com/foto.jpg",
   "prompt": "Ubah gambar menjadi ilustrasi 3D cute, pertahankan pose dan objek utama.",
-  "size": "1024x1024",
-  "apikey": "API_KEY_KAMU"
+  "size": "1024x1024"
 }`
   },
   {
