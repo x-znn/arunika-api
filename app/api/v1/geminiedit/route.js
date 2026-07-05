@@ -315,11 +315,8 @@ export async function POST(request) {
             }
           ],
           generationConfig: {
-            responseModalities: ["TEXT", "IMAGE"],
-            responseFormat: {
-              image: {
-                aspectRatio
-              }
+            imageConfig: {
+              aspectRatio
             }
           }
         }),
