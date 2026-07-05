@@ -304,7 +304,13 @@ export async function POST(request) {
             {
               role: "user",
               parts: [
-                { text: prompt },
+                {
+                  text:
+                    prompt +
+                    "\n\nOutput instruction: preserve the main subject and create the edited result in a " +
+                    aspectRatio +
+                    " canvas ratio when possible. Return the edited image."
+                },
                 {
                   inlineData: {
                     mimeType: source.mime,
@@ -314,11 +320,10 @@ export async function POST(request) {
               ]
             }
           ],
-          generationConfig: {
-            imageConfig: {
-              aspectRatio
-            }
-          }
+          // Gemini 2.5 Flash Image accepts image + text directly. Keep the
+          // request schema minimal for compatibility across API versions.
+          // The requested ratio is expressed in the prompt instead of an
+          // unsupported generationConfig field.
         }),
         cache: "no-store",
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
