@@ -1,6 +1,8 @@
 import { parseIgnote } from "../../../../../lib/ignote"
 import { optionsResponse, verifyApiKey, verifyRateLimit, json } from "../../../../../lib/security"
 
+import { recordRequest } from "../../../../../lib/stats"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -13,6 +15,8 @@ export async function GET(request) {
   if (limited) return limited
   const unauthorized = verifyApiKey(request)
   if (unauthorized) return unauthorized
+
+  await recordRequest("ignote_json")
 
   const url = new URL(request.url)
   const values = parseIgnote(url.searchParams)
