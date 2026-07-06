@@ -83,21 +83,21 @@ const ENDPOINTS = [
     ]
   },
   {
-    id: "editimage",
-    name: "editimage",
-    group: "AI IMAGE",
+    id: "fakereact",
+    name: "fakereact",
+    group: "IMAGE",
     method: "POST",
-    title: "AI Image Edit",
-    route: "/api/v1/editimage",
+    title: "Fake React WhatsApp",
+    route: "/api/v1/fakereact",
     description:
-      "Mengedit gambar dari URL publik berdasarkan prompt AI. Endpoint ini mengembalikan file gambar hasil edit secara langsung.",
+      "Membuat tampilan pesan WhatsApp ditekan lama. Foto atau sticker dari URL publik ditempel pada slot media di template.",
     image: true,
+    preview: "portrait",
+    params: [],
     body: `{
-  "imageUrl": "https://contoh.com/foto.jpg",
-  "prompt": "Ubah gambar menjadi ilustrasi 3D cute, pertahankan pose dan objek utama.",
-  "size": "1024x1024"
-}`,
-    params: []
+  "imageUrl": "https://contoh.com/gambar.jpg",
+  "mode": "image"
+}`
   },
   {
     id: "ludo-action",
