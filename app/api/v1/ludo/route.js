@@ -18,6 +18,8 @@ import {
   nowSeconds
 } from "../../../../lib/ludo-core"
 
+import { recordRequest } from "../../../../lib/stats"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -611,6 +613,7 @@ export async function OPTIONS() {
 
 export async function GET(request) {
   try {
+    await recordRequest("ludo")
     const url = new URL(request.url)
     const payload = Object.fromEntries(url.searchParams.entries())
 
@@ -644,6 +647,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    await recordRequest("ludo")
     const payload = await request.json().catch(() => ({}))
 
     if (!apiAllowed(request, payload)) {
