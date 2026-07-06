@@ -15,11 +15,12 @@ export async function GET(request) {
   const unauthorized = verifyApiKey(request)
   if (unauthorized) return unauthorized
 
+  await recordRequest("ignote")
+
   try {
     const url = new URL(request.url)
     const values = parseIgnote(url.searchParams)
     const png = renderIgnote(values)
-    await recordRequest("ignote")
     return new Response(png, {
       status: 200,
       headers: {
