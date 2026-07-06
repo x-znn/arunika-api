@@ -1,401 +1,55 @@
 import Nav from "../components/Nav"
-import { getApiStats } from "../../lib/stats"
+import { getApiStats, STAT_FEATURES } from "../../lib/stats"
 
 export const dynamic = "force-dynamic"
 
-function formatNumber(value, connected) {
-  if (!connected) return "—"
-
-  return Number(value || 0).toLocaleString("id-ID")
+function number(value, connected) {
+  return connected ? Number(value || 0).toLocaleString("id-ID") : "—"
 }
 
 export default async function DashboardPage() {
   const stats = await getApiStats()
   const connected = Boolean(stats.connected)
-
-  const metrics = [
-    {
-      label: "Total Requests",
-      value: formatNumber(stats.total, connected),
-      note: "seluruh request API"
-    },
-    {
-      label: "IG Note Requests",
-      value: formatNumber(stats.ignote, connected),
-      note: "request gambar IG Note"
-    },
-    {
-      label: "Request Hari Ini",
-      value: formatNumber(stats.today, connected),
-      note: stats.dayLabel || "hari ini"
-    },
-    {
-      label: "Database",
-      value: connected ? "Live" : "Setup",
-      note: connected
-        ? "database tersambung"
-        : "database belum tersambung",
-      status: connected ? "online" : "setup"
-    }
-  ]
+  const features = STAT_FEATURES.map((item) => ({ ...item, value: Number(stats.features?.[item.key] || 0) }))
+  const maker = features.filter((item) => item.category === "Maker").reduce((sum, item) => sum + item.value, 0)
+  const game = features.filter((item) => item.category === "Game").reduce((sum, item) => sum + item.value, 0)
 
   return (
-    <main className="paper-site dashboard-page">
+    <main className="paper-site analytics-page">
       <Nav />
-
-      <section className="dashboard-intro">
-        <span className="section-label">API ANALYTICS</span>
-
-        <h1>Dashboard.</h1>
-
-        <p>
-          Ringkasan aktivitas dan statistik Arunika API.
-        </p>
+      <section className="analytics-intro">
+        <span className="section-label">ARUNIKA API ANALYTICS</span>
+        <h1>Stats.</h1>
+        <p>Semua hit dari fitur Maker dan Game dicatat otomatis ke Upstash Redis. Health dan halaman Stats tidak dihitung agar angka tetap bersih.</p>
       </section>
 
-      <section className="stats-section">
-        <div className="stats-section__heading">
-          <div>
-            <span className="section-label">REQUEST OVERVIEW</span>
-            <h2>Statistik API.</h2>
-          </div>
+      <section className="analytics-summary">
+        <article><span>TOTAL REQUEST</span><strong>{number(stats.total, connected)}</strong><small>akumulasi semua fitur</small></article>
+        <article><span>HIT TODAY</span><strong>{number(stats.today, connected)}</strong><small>{stats.dayLabel || "Asia/Jakarta"}</small></article>
+        <article><span>MAKER HITS</span><strong>{number(maker, connected)}</strong><small>IG Note dan Fake React</small></article>
+        <article className={connected ? "analytics-live" : "analytics-off"}><span>DATABASE</span><strong>{connected ? "LIVE" : "SETUP"}</strong><small>{connected ? "Upstash Redis tersambung" : "isi env Upstash Redis"}</small></article>
+      </section>
 
-          <span
-            className={
-              "connection-status" +
-              (connected
-                ? " connection-status--online"
-                : " connection-status--setup")
-            }
-          >
-            <i />
-            {connected ? "DATABASE LIVE" : "DATABASE SETUP"}
-          </span>
+      <section className="analytics-breakdown">
+        <div className="analytics-breakdown__head">
+          <div><span className="section-label">ALL FEATURE HITS</span><h2>Hit per fitur.</h2></div>
+          <b>{number(game, connected)} Game Hits</b>
         </div>
-
-        <div className="stats-grid">
-          {metrics.map((metric) => (
-            <article
-              className={
-                "stat-card" +
-                (metric.status
-                  ? " stat-card--" + metric.status
-                  : "")
-              }
-              key={metric.label}
-            >
-              <span>{metric.label}</span>
-
-              <strong>{metric.value}</strong>
-
-              <small>{metric.note}</small>
+        <div className="analytics-table">
+          {features.map((feature) => (
+            <article key={feature.key}>
+              <span className={feature.category === "Maker" ? "analytics-pill analytics-pill--maker" : "analytics-pill"}>{feature.category}</span>
+              <strong>{feature.label}</strong>
+              <b>{number(feature.value, connected)}</b>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="dashboard-note">
-        <span className="dashboard-note__mark">i</span>
-
-        <p>
-          Statistik diperbarui saat halaman dibuka ulang. Data request berasal
-          dari sistem pencatatan Arunika API.
-        </p>
-      </section>
-
-      <footer className="paper-footer">
-        <span>ARUNIKA APIs. by @znn_id</span>
-        <span>Built for WhatsApp bot workflows.</span>
-      </footer>
-
+      <section className="analytics-note"><b>i</b><p>Statistik diperbarui saat halaman dimuat. Tambahkan <code>UPSTASH_REDIS_REST_URL</code> dan <code>UPSTASH_REDIS_REST_TOKEN</code> di Vercel agar seluruh hit tersimpan permanen.</p></section>
+      <footer className="paper-footer"><span>ARUNIKA APIs. by @znn_id</span><span>Built for WhatsApp bot workflows.</span></footer>
       <style>{`
-        .dashboard-page,
-        .dashboard-page *,
-        .dashboard-page *::before,
-        .dashboard-page *::after {
-          box-sizing: border-box;
-        }
-
-        .dashboard-page {
-          width: 100%;
-          max-width: 100%;
-          min-width: 0;
-          overflow-x: hidden;
-        }
-
-        .dashboard-intro {
-          width: min(1120px, calc(100% - 40px));
-          max-width: 100%;
-          min-width: 0;
-          margin: 72px auto 44px;
-        }
-
-        .dashboard-intro h1 {
-          margin: 10px 0 12px;
-          color: var(--ink);
-          font: 800 clamp(42px, 7vw, 82px)/0.9 var(--mono);
-          letter-spacing: -0.09em;
-        }
-
-        .dashboard-intro p {
-          max-width: 510px;
-          margin: 0;
-          color: var(--muted);
-          font-size: 16px;
-          line-height: 1.75;
-        }
-
-        .stats-section {
-          width: min(1120px, calc(100% - 40px));
-          max-width: 100%;
-          min-width: 0;
-          margin: 0 auto 24px;
-          overflow: hidden;
-          border: 1px solid var(--line);
-          background: var(--paper-soft);
-        }
-
-        .stats-section__heading {
-          display: flex;
-          align-items: end;
-          justify-content: space-between;
-          gap: 24px;
-          min-width: 0;
-          padding: 32px 34px;
-          border-bottom: 1px solid var(--line);
-        }
-
-        .stats-section__heading > div {
-          min-width: 0;
-        }
-
-        .stats-section__heading h2 {
-          margin: 9px 0 0;
-          color: var(--ink);
-          font: 800 clamp(28px, 4vw, 47px)/0.95 var(--mono);
-          letter-spacing: -0.075em;
-        }
-
-        .connection-status {
-          flex: 0 0 auto;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 12px;
-          font: 800 10px var(--mono);
-          letter-spacing: 0.06em;
-          white-space: nowrap;
-        }
-
-        .connection-status i {
-          width: 8px;
-          height: 8px;
-          display: block;
-          border-radius: 999px;
-        }
-
-        .connection-status--online {
-          color: #257246;
-          background: #e5f6e9;
-          border: 1px solid #b9e4c4;
-        }
-
-        .connection-status--online i {
-          background: #2d9454;
-          box-shadow: 0 0 0 4px rgba(45, 148, 84, 0.12);
-        }
-
-        .connection-status--setup {
-          color: #a25b08;
-          background: #fff1d2;
-          border: 1px solid #f0d29a;
-        }
-
-        .connection-status--setup i {
-          background: #d9901c;
-          box-shadow: 0 0 0 4px rgba(217, 144, 28, 0.12);
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          min-width: 0;
-        }
-
-        .stat-card {
-          min-width: 0;
-          min-height: 214px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          gap: 18px;
-          padding: 26px 24px;
-          border-right: 1px solid var(--line);
-          background: rgba(255, 255, 255, 0.25);
-        }
-
-        .stat-card:last-child {
-          border-right: 0;
-        }
-
-        .stat-card:hover {
-          background: #ffffff;
-        }
-
-        .stat-card > span {
-          overflow-wrap: anywhere;
-          color: var(--muted);
-          font: 800 10px var(--mono);
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-        }
-
-        .stat-card strong {
-          min-width: 0;
-          overflow-wrap: anywhere;
-          color: var(--ink);
-          font: 800 clamp(33px, 4vw, 52px)/0.9 var(--mono);
-          letter-spacing: -0.08em;
-        }
-
-        .stat-card small {
-          color: var(--muted);
-          font-size: 12px;
-          line-height: 1.55;
-        }
-
-        .stat-card--online strong {
-          color: #26794a;
-        }
-
-        .stat-card--setup strong {
-          color: #b66d13;
-        }
-
-        .dashboard-note {
-          width: min(1120px, calc(100% - 40px));
-          max-width: 100%;
-          min-width: 0;
-          display: flex;
-          align-items: center;
-          gap: 13px;
-          margin: 0 auto 72px;
-          padding: 16px 18px;
-          overflow: hidden;
-          color: var(--muted);
-          background: #f4f2ed;
-          border: 1px solid var(--line);
-        }
-
-        .dashboard-note__mark {
-          width: 23px;
-          height: 23px;
-          flex: 0 0 auto;
-          display: grid;
-          place-items: center;
-          color: var(--orange-dark);
-          border: 1px solid var(--orange);
-          border-radius: 999px;
-          font: 800 13px/1 var(--mono);
-        }
-
-        .dashboard-note p {
-          min-width: 0;
-          margin: 0;
-          overflow-wrap: anywhere;
-          font-size: 13px;
-          line-height: 1.65;
-        }
-
-        @media (max-width: 900px) {
-          .stats-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-
-          .stat-card:nth-child(2) {
-            border-right: 0;
-          }
-
-          .stat-card:nth-child(-n + 2) {
-            border-bottom: 1px solid var(--line);
-          }
-        }
-
-        @media (max-width: 760px) {
-          .dashboard-intro {
-            width: min(1120px, calc(100% - 28px));
-            margin: 46px auto 30px;
-          }
-
-          .stats-section,
-          .dashboard-note {
-            width: min(1120px, calc(100% - 28px));
-          }
-
-          .stats-section__heading {
-            align-items: start;
-            flex-direction: column;
-            padding: 25px;
-          }
-
-          .connection-status {
-            font-size: 9px;
-          }
-
-          .stat-card {
-            min-height: 176px;
-            padding: 22px 19px;
-          }
-
-          .dashboard-note {
-            align-items: flex-start;
-            margin-bottom: 46px;
-          }
-        }
-
-        @media (max-width: 460px) {
-          .dashboard-intro h1 {
-            font-size: 56px;
-          }
-
-          .dashboard-intro p {
-            font-size: 15px;
-          }
-
-          .stats-section__heading {
-            padding: 22px;
-          }
-
-          .stats-section__heading h2 {
-            font-size: 35px;
-          }
-
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .stat-card {
-            min-height: 148px;
-            border-right: 0;
-            border-bottom: 1px solid var(--line);
-          }
-
-          .stat-card:nth-child(2) {
-            border-bottom: 1px solid var(--line);
-          }
-
-          .stat-card:last-child {
-            border-bottom: 0;
-          }
-
-          .stat-card strong {
-            font-size: 43px;
-          }
-
-          .dashboard-note {
-            padding: 15px;
-          }
-        }
+        .analytics-intro,.analytics-summary,.analytics-breakdown,.analytics-note{width:min(1180px,calc(100% - 40px));margin-left:auto;margin-right:auto}.analytics-intro{margin-top:70px;margin-bottom:40px}.analytics-intro h1{margin:10px 0 12px;color:var(--ink);font:800 clamp(48px,8vw,84px)/.9 var(--mono);letter-spacing:-.09em}.analytics-intro p{max-width:680px;margin:0;color:var(--muted);font-size:16px;line-height:1.75}.analytics-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:24px;border:1px solid var(--line);background:#fffdf8}.analytics-summary article{min-height:196px;display:flex;flex-direction:column;justify-content:space-between;padding:24px;border-right:1px solid var(--line)}.analytics-summary article:last-child{border-right:0}.analytics-summary span{color:var(--muted);font:800 10px var(--mono);letter-spacing:.08em}.analytics-summary strong{color:var(--ink);font:800 clamp(31px,4.6vw,54px)/.9 var(--mono);letter-spacing:-.08em}.analytics-summary small{color:var(--muted);font-size:12px;line-height:1.55}.analytics-live strong{color:#28764a}.analytics-off strong{color:#a66a0d}.analytics-breakdown{margin-bottom:24px;border:1px solid var(--line);background:#fffdf8}.analytics-breakdown__head{display:flex;align-items:end;justify-content:space-between;gap:20px;padding:28px 30px;border-bottom:1px solid var(--line)}.analytics-breakdown__head h2{margin:9px 0 0;color:var(--ink);font:800 clamp(28px,4vw,46px)/.94 var(--mono);letter-spacing:-.075em}.analytics-breakdown__head>b{padding:10px 12px;color:#2f704b;border:1px solid #bbdfc6;background:#e8f7ed;font:800 10px var(--mono)}.analytics-table{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-table article{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:18px 20px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}.analytics-table article:nth-child(2n){border-right:0}.analytics-table article:nth-last-child(-n+2){border-bottom:0}.analytics-table strong{overflow:hidden;color:var(--ink);font:800 13px var(--mono);text-overflow:ellipsis;white-space:nowrap}.analytics-table b{color:var(--ink);font:800 20px var(--mono);letter-spacing:-.06em}.analytics-pill{padding:5px 6px;color:#765514;background:#fff0cf;border:1px solid #ecd39e;font:800 8px var(--mono)}.analytics-pill--maker{color:#286a48;background:#e8f7ed;border-color:#b9dfc5}.analytics-note{display:flex;gap:12px;align-items:flex-start;margin-bottom:72px;padding:17px 19px;color:var(--muted);border:1px solid var(--line);background:#f6f3ed}.analytics-note>b{display:grid;width:22px;height:22px;flex:0 0 auto;place-items:center;color:#935a0b;border:1px solid #d49a2b;border-radius:50%;font:800 12px var(--mono)}.analytics-note p{margin:0;font-size:13px;line-height:1.65}.analytics-note code{font:800 11px var(--mono)}@media(max-width:830px){.analytics-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-summary article:nth-child(2){border-right:0}.analytics-summary article:nth-child(-n+2){border-bottom:1px solid var(--line)}}@media(max-width:560px){.analytics-intro,.analytics-summary,.analytics-breakdown,.analytics-note{width:min(100% - 24px,1180px)}.analytics-intro{margin-top:44px}.analytics-intro h1{font-size:56px}.analytics-summary{grid-template-columns:1fr}.analytics-summary article,.analytics-summary article:nth-child(2){border-right:0;border-bottom:1px solid var(--line)}.analytics-summary article:last-child{border-bottom:0}.analytics-breakdown__head{align-items:start;flex-direction:column;padding:22px}.analytics-table{grid-template-columns:1fr}.analytics-table article,.analytics-table article:nth-child(2n),.analytics-table article:nth-last-child(-n+2){border-right:0;border-bottom:1px solid var(--line)}.analytics-table article:last-child{border-bottom:0}.analytics-note{margin-bottom:45px}}
       `}</style>
     </main>
   )
