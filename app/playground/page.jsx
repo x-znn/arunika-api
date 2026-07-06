@@ -9,7 +9,7 @@ export default function PlaygroundPage() {
         <span className="section-label">ARUNIKA API PLAYGROUND</span>
         <h1>Playground.</h1>
         <p>
-          Coba endpoint Arunika langsung dari browser. Fake React mendukung pilihan file langsung dari galeri HP tanpa perlu upload ke ImgBB atau URL eksternal.
+          Coba endpoint Api langsung dari browser.
         </p>
       </section>
       <EndpointExplorer playground />
