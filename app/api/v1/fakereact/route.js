@@ -32,15 +32,16 @@ function clean(value, max = 0) {
   return max > 0 ? text.slice(0, max) : text
 }
 
+function mediaMode(value) {
+  return clean(value, 20).toLowerCase() === "sticker" ? "sticker" : "image"
+}
+
 function isForbiddenIp(ip) {
   const type = isIP(ip)
 
   if (type === 4) {
     const [a, b] = ip.split(".").map(Number)
-    return (
-      a === 0 ||
-      a === 10 ||
-      a === 127 ||
+    return a === 0 || a === 10 || a === 127 ||
       (a === 100 && b >= 64 && b <= 127) ||
       (a === 169 && b === 254) ||
       (a === 172 && b >= 16 && b <= 31) ||
@@ -48,23 +49,15 @@ function isForbiddenIp(ip) {
       (a === 192 && b === 168) ||
       (a === 198 && (b === 18 || b === 19)) ||
       a >= 224
-    )
   }
 
   if (type === 6) {
     const normalized = ip.toLowerCase()
     const mappedV4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
-
     if (mappedV4) return isForbiddenIp(mappedV4[1])
-
-    return (
-      normalized === "::" ||
-      normalized === "::1" ||
-      normalized.startsWith("fe80:") ||
-      normalized.startsWith("fc") ||
-      normalized.startsWith("fd") ||
-      normalized.startsWith("ff")
-    )
+    return normalized === "::" || normalized === "::1" ||
+      normalized.startsWith("fe80:") || normalized.startsWith("fc") ||
+      normalized.startsWith("fd") || normalized.startsWith("ff")
   }
 
   return true
@@ -72,7 +65,6 @@ function isForbiddenIp(ip) {
 
 async function assertPublicUrl(value) {
   let url
-
   try {
     url = new URL(value)
   } catch {
@@ -88,7 +80,6 @@ async function assertPublicUrl(value) {
   }
 
   const host = url.hostname.toLowerCase()
-
   if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) {
     throw new Error("imageUrl harus mengarah ke host publik.")
   }
@@ -99,7 +90,6 @@ async function assertPublicUrl(value) {
   }
 
   let records
-
   try {
     records = await lookup(host, { all: true, verbatim: true })
   } catch {
@@ -119,29 +109,20 @@ function responseMime(response) {
 
 async function readBytes(response) {
   const declared = Number(response.headers.get("content-length") || 0)
-
   if (Number.isFinite(declared) && declared > MAX_INPUT_BYTES) {
     throw new Error("Ukuran gambar maksimal 8 MB.")
   }
-
   if (!response.body) throw new Error("Respons gambar kosong.")
 
   const chunks = []
   let total = 0
-
   for await (const chunk of response.body) {
     const bytes = Buffer.from(chunk)
     total += bytes.length
-
-    if (total > MAX_INPUT_BYTES) {
-      throw new Error("Ukuran gambar maksimal 8 MB.")
-    }
-
+    if (total > MAX_INPUT_BYTES) throw new Error("Ukuran gambar maksimal 8 MB.")
     chunks.push(bytes)
   }
-
   if (!total) throw new Error("Respons gambar kosong.")
-
   return Buffer.concat(chunks, total)
 }
 
@@ -156,7 +137,7 @@ async function fetchMedia(value) {
       signal: AbortSignal.timeout(15_000),
       headers: {
         Accept: "image/png,image/jpeg,image/webp,*/*;q=0.2",
-        "User-Agent": "ArunikaAPI/1.0 FakeReact"
+        "User-Agent": "ArunikaAPI/1.1 FakeReact"
       }
     })
 
@@ -167,15 +148,10 @@ async function fetchMedia(value) {
       continue
     }
 
-    if (!response.ok) {
-      throw new Error("Gagal mengambil media sumber. Server merespons " + response.status + ".")
-    }
+    if (!response.ok) throw new Error("Gagal mengambil media sumber. Server merespons " + response.status + ".")
 
     const mime = responseMime(response)
-
-    if (!ALLOWED_MIME.has(mime)) {
-      throw new Error("Format media harus JPG, PNG, atau WEBP.")
-    }
+    if (!ALLOWED_MIME.has(mime)) throw new Error("Format media harus JPG, PNG, atau WEBP.")
 
     return { mime, bytes: await readBytes(response) }
   }
@@ -183,30 +159,52 @@ async function fetchMedia(value) {
   throw new Error("Terlalu banyak redirect saat mengambil media.")
 }
 
+async function parseSource(request) {
+  const contentType = String(request.headers.get("content-type") || "").toLowerCase()
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData()
+    const uploaded = form.get("file")
+
+    if (!uploaded || typeof uploaded.arrayBuffer !== "function") {
+      throw new Error("Field file wajib diisi untuk upload langsung.")
+    }
+
+    const mime = clean(uploaded.type || "", 120).toLowerCase()
+    if (!ALLOWED_MIME.has(mime)) throw new Error("Format file harus JPG, PNG, atau WEBP.")
+    if (Number(uploaded.size || 0) <= 0) throw new Error("File gambar kosong.")
+    if (Number(uploaded.size || 0) > MAX_INPUT_BYTES) throw new Error("Ukuran gambar maksimal 8 MB.")
+
+    return {
+      bytes: Buffer.from(await uploaded.arrayBuffer()),
+      mime,
+      mode: mediaMode(form.get("mode"))
+    }
+  }
+
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    throw new Error("Body request harus JSON valid atau multipart form data.")
+  }
+
+  const imageUrl = clean(body?.imageUrl || body?.url || "", 2048)
+  if (!imageUrl) throw new Error("imageUrl wajib diisi.")
+
+  const source = await fetchMedia(imageUrl)
+  return { ...source, mode: mediaMode(body?.mode || body?.type) }
+}
+
 export async function POST(request) {
   const limited = await verifyRateLimit(request)
   if (limited) return limited
 
-  let body
+  await recordRequest("fakereact")
 
   try {
-    body = await request.json()
-  } catch {
-    return fail("Body request harus berupa JSON yang valid.")
-  }
-
-  const imageUrl = clean(body?.imageUrl || body?.url || "", 2048)
-  const mode = clean(body?.mode || body?.type || "image", 20).toLowerCase() === "sticker"
-    ? "sticker"
-    : "image"
-
-  if (!imageUrl) return fail("imageUrl wajib diisi.")
-
-  try {
-    const source = await fetchMedia(imageUrl)
-    const png = await renderFakeReact({ bytes: source.bytes, mime: source.mime, mode })
-
-    await recordRequest("fakereact")
+    const source = await parseSource(request)
+    const png = await renderFakeReact(source)
 
     return new Response(png, {
       status: 200,
@@ -220,8 +218,8 @@ export async function POST(request) {
       }
     })
   } catch (error) {
-    const message = clean(error?.message || "Gagal membuat fake react.", 500)
+    const message = clean(error?.message || "Gagal membuat Fake React.", 500)
     console.error("FAKEREACT_ERROR", error)
-    return fail(message || "Gagal membuat fake react.", 502)
+    return fail(message || "Gagal membuat Fake React.", 502)
   }
 }
