@@ -1,6 +1,8 @@
 import { findCard } from "../../../../../lib/monopoly-core"
 import { renderCardPng } from "../../../../../lib/monopoly-card-render"
 
+import { recordRequest } from "../../../../../lib/stats"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -17,6 +19,7 @@ function allowed(request) {
 
 export async function GET(request) {
   try {
+    await recordRequest("monopoly_card")
     if (!allowed(request)) return Response.json({ ok: false, message: "API key tidak valid." }, { status: 401, headers: headers() })
     const url = new URL(request.url)
     const id = String(url.searchParams.get("id") || "").trim()
