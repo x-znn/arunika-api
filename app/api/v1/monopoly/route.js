@@ -18,6 +18,8 @@ import {
   useJailCardRoom
 } from "../../../../lib/monopoly-core"
 
+import { recordRequest } from "../../../../lib/stats"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -221,6 +223,7 @@ export function OPTIONS() {
 
 export async function GET(request) {
   try {
+    await recordRequest("monopoly")
     const url = new URL(request.url)
     const roomId = String(
       url.searchParams.get("room") || ""
@@ -258,6 +261,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    await recordRequest("monopoly")
     const payload = await request.json().catch(() => ({}))
 
     if (!apiAllowed(request, payload)) {
