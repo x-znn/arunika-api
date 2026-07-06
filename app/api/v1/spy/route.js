@@ -16,6 +16,8 @@ import {
   submitVote
 } from "../../../../lib/spy-core"
 
+import { recordRequest } from "../../../../lib/stats"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -154,6 +156,7 @@ export function OPTIONS() {
 
 export async function GET(request) {
   try {
+    await recordRequest("spy")
     const url = new URL(request.url)
     const roomId = String(url.searchParams.get("room") || "").trim()
 
@@ -178,6 +181,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    await recordRequest("spy")
     const payload = await request.json().catch(() => ({}))
 
     if (!apiAllowed(request, payload)) {
