@@ -59,6 +59,21 @@ export const API_ENDPOINTS = [
     ]
   },
   {
+    id: "iqc",
+    name: "iqc",
+    category: "maker",
+    group: "MAKER · TEXT",
+    method: "GET",
+    title: "IQC Text",
+    route: "/api/v1/iqc",
+    description: "Membuat tampilan WhatsApp long-press untuk pesan teks. Template otomatis dipilih berdasarkan panjang teks: maksimal 29 karakter untuk satu baris, lalu dua baris sampai 58 karakter.",
+    image: true,
+    preview: "portrait",
+    params: [
+      { key: "text", label: "Teks", placeholder: "Jadi brasa di sayaang", defaultValue: "Jadi brasa di sayaang" }
+    ]
+  },
+  {
     id: "fakereact",
     name: "fakereact",
     category: "maker",
