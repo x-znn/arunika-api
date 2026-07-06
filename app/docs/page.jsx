@@ -60,23 +60,21 @@ const ENDPOINTS = [
       "/api/v1/ignote/json?name=zann&text=Halo%20semua"
   },
   {
-    id: "editimage",
-    name: "editimage",
-    group: "AI IMAGE",
+    id: "fakereact",
+    name: "fakereact",
+    group: "IMAGE",
     method: "POST",
-    title: "AI Image Edit",
-    route: "/api/v1/editimage",
+    title: "Fake React WhatsApp",
+    route: "/api/v1/fakereact",
     description:
-      "Mengedit gambar dari URL publik menggunakan prompt AI. Hasil respons langsung berupa file gambar PNG/JPG/WEBP.",
+      "Membuat screenshot WhatsApp mode tekan lama. Endpoint menerima URL foto atau sticker publik lalu menempelkannya ke area media pada template.",
     params: [
-      ["imageUrl", "URL publik gambar JPG, PNG, atau WEBP. Maksimum 8 MB."],
-      ["prompt", "Instruksi perubahan gambar, misalnya: ubah menjadi 3D cute."],
-      ["size", "Opsional: 1024x1024, 1536x1024, 1024x1536, 1792x1024, atau 1024x1792."]
+      ["imageUrl", "URL publik media JPG, PNG, atau WEBP. Maksimal 8 MB."],
+      ["mode", "Gunakan image untuk foto atau sticker untuk sticker transparan."]
     ],
     example: `{
-  "imageUrl": "https://contoh.com/foto.jpg",
-  "prompt": "Ubah gambar menjadi ilustrasi 3D cute, pertahankan pose dan objek utama.",
-  "size": "1024x1024"
+  "imageUrl": "https://contoh.com/media.webp",
+  "mode": "sticker"
 }`
   },
   {
@@ -213,7 +211,7 @@ export default function DocsPage() {
         <h1>Docs.</h1>
 
         <p>
-          Dokumentasi endpoint Arunika API untuk image generator, AI image edit, Ludo, dan
+          Dokumentasi endpoint Arunika API untuk image generator, Ludo, dan
           Monopoly Indonesia.
         </p>
 
@@ -231,8 +229,8 @@ export default function DocsPage() {
       <section className="docs-overview">
         <article>
           <span>IMAGE</span>
-          <strong>IG Note & AI Edit</strong>
-          <small>Generate atau edit gambar untuk bot WhatsApp.</small>
+          <strong>IG Note</strong>
+          <small>Generate gambar PNG untuk bot WhatsApp.</small>
         </article>
 
         <article>
