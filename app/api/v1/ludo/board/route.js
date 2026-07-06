@@ -1,6 +1,8 @@
 import { renderLudoBoard } from "../../../../../lib/ludo-board"
 import { normalizeRoom } from "../../../../../lib/ludo-core"
 
+import { recordRequest } from "../../../../../lib/stats"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -84,6 +86,7 @@ async function getRoom(roomId, useFinal) {
 
 export async function GET(request) {
   try {
+    await recordRequest("ludo_board")
     const url = new URL(request.url)
     const query = Object.fromEntries(
       url.searchParams.entries()
