@@ -18,9 +18,9 @@ export default function HomePage() {
           </h1>
 
           <p>
-            Generate gambar, uji endpoint, dan pakai URL hasilnya langsung di
-            script bot. Dibuat ringkas untuk kebutuhan command yang cepat dan
-            simpel.
+            Semua fitur kini dipisahkan ke kategori Maker, Game, dan System.
+            Cari endpoint Monopoly, Ludo, Spy, Absensi, IG Note, serta Fake
+            React lebih cepat dari satu katalog.
           </p>
 
           <div className="intro-actions">
@@ -55,8 +55,8 @@ export default function HomePage() {
         </div>
 
         <div>
-          <span>Image endpoint</span>
-          <b>PNG output</b>
+          <span>Kategori fitur</span>
+          <b>Maker · Game · System</b>
         </div>
 
         <Link href="/api/health">Check status ↗</Link>
