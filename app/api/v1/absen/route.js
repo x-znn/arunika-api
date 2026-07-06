@@ -11,6 +11,8 @@ import {
   statusLabel
 } from "../../../../lib/absen-core"
 
+import { recordRequest } from "../../../../lib/stats"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -326,6 +328,7 @@ export function OPTIONS() {
 
 export async function GET(request) {
   try {
+    await recordRequest("absen")
     const url = new URL(request.url)
     const room = String(url.searchParams.get("room") || "").trim()
 
@@ -349,6 +352,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    await recordRequest("absen")
     const payload = await request.json().catch(() => ({}))
 
     if (!apiAllowed(request, payload)) {
