@@ -18,9 +18,7 @@ export default function HomePage() {
           </h1>
 
           <p>
-            Semua fitur kini dipisahkan ke kategori Maker, Game, dan System.
-            Cari endpoint Monopoly, Ludo, Spy, Absensi, IG Note, serta Fake
-            React lebih cepat dari satu katalog.
+            simple rest api by @znn_id
           </p>
 
           <div className="intro-actions">
