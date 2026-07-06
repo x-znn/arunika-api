@@ -20,14 +20,14 @@ export default async function DashboardPage() {
       <section className="analytics-intro">
         <span className="section-label">ARUNIKA API ANALYTICS</span>
         <h1>Stats.</h1>
-        <p>Semua hit dari fitur Maker dan Game dicatat otomatis ke Upstash Redis. Health dan halaman Stats tidak dihitung agar angka tetap bersih.</p>
+        <p>Semua hit dari fitur Maker dan Game</p>
       </section>
 
       <section className="analytics-summary">
         <article><span>TOTAL REQUEST</span><strong>{number(stats.total, connected)}</strong><small>akumulasi semua fitur</small></article>
         <article><span>HIT TODAY</span><strong>{number(stats.today, connected)}</strong><small>{stats.dayLabel || "Asia/Jakarta"}</small></article>
         <article><span>MAKER HITS</span><strong>{number(maker, connected)}</strong><small>IG Note dan Fake React</small></article>
-        <article className={connected ? "analytics-live" : "analytics-off"}><span>DATABASE</span><strong>{connected ? "LIVE" : "SETUP"}</strong><small>{connected ? "Upstash Redis tersambung" : "isi env Upstash Redis"}</small></article>
+        <article className={connected ? "analytics-live" : "analytics-off"}><span>DATABASE</span><strong>{connected ? "LIVE" : "SETUP"}</strong><small>{connected ? "Database Redis tersambung" : "belum tersambung"}</small></article>
       </section>
 
       <section className="analytics-breakdown">
