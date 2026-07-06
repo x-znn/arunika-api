@@ -10,7 +10,7 @@ export default function DocsPage() {
         <span className="section-label">ARUNIKA API REFERENCE</span>
         <h1>Docs.</h1>
         <p>
-          Endpoint Arunika dipisahkan menjadi Maker, Game, dan System. Semua request menggunakan JSON kecuali Fake React yang juga mendukung upload file langsung melalui multipart form data.
+          Endpoint Arunika dipisahkan menjadi Maker, Game, dan System. Semua request menggunakan JSON kecuali Fake React yang juga mendukung upload file langsung melalui multipart form data. IQC Text menerima parameter text dan otomatis memilih template satu atau dua baris.
         </p>
         <Link href="/playground" className="docs-intro__button">Buka Playground ↗</Link>
       </section>
@@ -45,9 +45,9 @@ export default function DocsPage() {
       </section>
 
       <section className="docs-note">
-        <b>FAKE REACT UPLOAD</b>
+        <b>MAKER NOTES</b>
         <p>
-          Browser/mobile: kirim <code>multipart/form-data</code> dengan field <code>file</code> dan <code>mode</code> (`image` atau `sticker`). Script WhatsApp tetap dapat memakai JSON lama dengan <code>imageUrl</code>.
+          Fake React: browser/mobile dapat mengirim <code>multipart/form-data</code> dengan field <code>file</code> dan <code>mode</code>. IQC Text: gunakan <code>text</code>, dengan batas 29 karakter untuk template satu baris dan 58 karakter untuk template dua baris.
         </p>
       </section>
       <footer className="paper-footer"><span>ARUNIKA APIs. by @znn_id</span><span>Built for WhatsApp bot workflows.</span></footer>
