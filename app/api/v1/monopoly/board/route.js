@@ -1,6 +1,8 @@
 import { normalizeRoom } from "../../../../../lib/monopoly-core"
 import { renderMonopolyBoard } from "../../../../../lib/monopoly-board-render"
 
+import { recordRequest } from "../../../../../lib/stats"
+
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
@@ -91,6 +93,7 @@ export function OPTIONS() {
 
 export async function GET(request) {
   try {
+    await recordRequest("monopoly_board")
     if (!allowed(request)) {
       return Response.json(
         {
