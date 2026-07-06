@@ -70,7 +70,7 @@ function isForbiddenIp(ip) {
   return true
 }
 
-async function publicUrl(value) {
+async function assertPublicUrl(value) {
   let url
 
   try {
@@ -146,7 +146,7 @@ async function readBytes(response) {
 }
 
 async function fetchMedia(value) {
-  let current = await publicUrl(value)
+  let current = await assertPublicUrl(value)
 
   for (let redirects = 0; redirects < 4; redirects += 1) {
     const response = await fetch(current, {
@@ -163,7 +163,7 @@ async function fetchMedia(value) {
     if (response.status >= 300 && response.status < 400) {
       const next = response.headers.get("location")
       if (!next) throw new Error("Redirect media tidak memiliki URL tujuan.")
-      current = await publicUrl(new URL(next, current).toString())
+      current = await assertPublicUrl(new URL(next, current).toString())
       continue
     }
 
@@ -196,13 +196,15 @@ export async function POST(request) {
   }
 
   const imageUrl = clean(body?.imageUrl || body?.url || "", 2048)
-  const mode = clean(body?.mode || body?.type || "image", 20).toLowerCase() === "sticker" ? "sticker" : "image"
+  const mode = clean(body?.mode || body?.type || "image", 20).toLowerCase() === "sticker"
+    ? "sticker"
+    : "image"
 
   if (!imageUrl) return fail("imageUrl wajib diisi.")
 
   try {
     const source = await fetchMedia(imageUrl)
-    const png = renderFakeReact({ bytes: source.bytes, mime: source.mime, mode })
+    const png = await renderFakeReact({ bytes: source.bytes, mime: source.mime, mode })
 
     await recordRequest("fakereact")
 
