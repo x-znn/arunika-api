@@ -229,8 +229,11 @@ async function fetchMedia(value) {
     const mime = finalMime(responseMime(response), bytes)
 
     if (!mime) {
-      throw new Error("Format media harus JPG, PNG, atau WEBP.")
-    }
+  return {
+    mime: "image/jpeg",
+    bytes
+  }
+}
 
     return { mime, bytes }
   }
@@ -279,7 +282,15 @@ async function parseRequest(request) {
 
   if (!imageUrl) throw new Error("imageUrl wajib diisi.")
 
-  return { mode, source: await fetchMedia(imageUrl) }
+  const source = await fetchMedia(imageUrl)
+
+if (!source.mime && body?.mimeHint) {
+  source.mime = body.mimeHint
+}
+
+return {
+  mode,
+  source
 }
 
 export async function POST(request) {
