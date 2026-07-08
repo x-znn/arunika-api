@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises"
 import { isIP } from "node:net"
+import sharp from "sharp"
 import { verifyRateLimit, json } from "../../../../lib/security"
 import { recordRequest } from "../../../../lib/stats"
 import { renderFakeReact } from "../../../../lib/fakereact"
@@ -33,11 +34,35 @@ function clean(value, max = 0) {
 }
 
 function cleanMime(value) {
-  return clean(value, 120).toLowerCase().split(";", 1)[0]
+  return clean(value, 160).toLowerCase().split(";", 1)[0].trim()
 }
 
 function isAllowedMime(value) {
   return ALLOWED_MIME.has(cleanMime(value))
+}
+
+function extToMime(value) {
+  const ext = clean(value, 40)
+    .toLowerCase()
+    .replace(/^\./, "")
+    .split(/[?#]/, 1)[0]
+
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg"
+  if (ext === "png") return "image/png"
+  if (ext === "webp") return "image/webp"
+
+  return ""
+}
+
+function extFromUrl(value) {
+  try {
+    const url = new URL(value)
+    const last = url.pathname.split("/").pop() || ""
+    const dot = last.lastIndexOf(".")
+    return dot >= 0 ? last.slice(dot + 1) : ""
+  } catch {
+    return ""
+  }
 }
 
 function sniffImageMime(bytes) {
@@ -76,12 +101,57 @@ function sniffImageMime(bytes) {
   return ""
 }
 
-function finalMime(headerMime, bytes) {
-  const fromHeader = cleanMime(headerMime)
-  if (isAllowedMime(fromHeader)) return fromHeader
+function looksLikeTextPayload(bytes) {
+  if (!Buffer.isBuffer(bytes) || !bytes.length) return false
 
-  const fromBytes = sniffImageMime(bytes)
-  if (isAllowedMime(fromBytes)) return fromBytes
+  const head = bytes.slice(0, 160).toString("utf8").trim().toLowerCase()
+
+  return (
+    head.startsWith("<!doctype") ||
+    head.startsWith("<html") ||
+    head.includes("<html") ||
+    head.startsWith("{") ||
+    head.startsWith("[") ||
+    head.includes("cloudflare") ||
+    head.includes("access denied") ||
+    head.includes("not found")
+  )
+}
+
+async function sharpMime(bytes) {
+  try {
+    const meta = await sharp(bytes, { failOn: "none" }).metadata()
+
+    if (meta?.format === "jpeg") return "image/jpeg"
+    if (meta?.format === "png") return "image/png"
+    if (meta?.format === "webp") return "image/webp"
+  } catch {}
+
+  return ""
+}
+
+async function detectRealMime({ headerMime = "", hintMime = "", extHint = "", url = "", bytes }) {
+  const byBytes = sniffImageMime(bytes)
+  if (isAllowedMime(byBytes)) return byBytes
+
+  const bySharp = await sharpMime(bytes)
+  if (isAllowedMime(bySharp)) return bySharp
+
+  if (looksLikeTextPayload(bytes)) {
+    return ""
+  }
+
+  const byHeader = cleanMime(headerMime)
+  if (isAllowedMime(byHeader)) return byHeader
+
+  const byHint = cleanMime(hintMime)
+  if (isAllowedMime(byHint)) return byHint
+
+  const byExtHint = extToMime(extHint)
+  if (isAllowedMime(byExtHint)) return byExtHint
+
+  const byUrlExt = extToMime(extFromUrl(url))
+  if (isAllowedMime(byUrlExt)) return byUrlExt
 
   return ""
 }
@@ -91,6 +161,7 @@ function isForbiddenIp(ip) {
 
   if (type === 4) {
     const [a, b] = ip.split(".").map(Number)
+
     return (
       a === 0 ||
       a === 10 ||
@@ -148,7 +219,10 @@ async function assertPublicUrl(value) {
   }
 
   if (isIP(host)) {
-    if (isForbiddenIp(host)) throw new Error("imageUrl tidak boleh mengarah ke jaringan internal.")
+    if (isForbiddenIp(host)) {
+      throw new Error("imageUrl tidak boleh mengarah ke jaringan internal.")
+    }
+
     return url
   }
 
@@ -178,7 +252,9 @@ async function readBytes(response) {
     throw new Error("Ukuran gambar maksimal 8 MB.")
   }
 
-  if (!response.body) throw new Error("Respons gambar kosong.")
+  if (!response.body) {
+    throw new Error("Respons gambar kosong.")
+  }
 
   const chunks = []
   let total = 0
@@ -194,12 +270,14 @@ async function readBytes(response) {
     chunks.push(bytes)
   }
 
-  if (!total) throw new Error("Respons gambar kosong.")
+  if (!total) {
+    throw new Error("Respons gambar kosong.")
+  }
 
   return Buffer.concat(chunks, total)
 }
 
-async function fetchMedia(value) {
+async function fetchMedia(value, hints = {}) {
   let current = await assertPublicUrl(value)
 
   for (let redirects = 0; redirects < 4; redirects += 1) {
@@ -209,14 +287,18 @@ async function fetchMedia(value) {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
       headers: {
-        Accept: "image/png,image/jpeg,image/webp,application/octet-stream,*/*;q=0.2",
-        "User-Agent": "ArunikaAPI/1.0 FakeReact"
+        Accept: "image/jpeg,image/png,image/webp,application/octet-stream,*/*;q=0.2",
+        "User-Agent": "Mozilla/5.0 (compatible; ArunikaAPI/1.0; +https://arunika-api-3xqp.vercel.app)"
       }
     })
 
     if (response.status >= 300 && response.status < 400) {
       const next = response.headers.get("location")
-      if (!next) throw new Error("Redirect media tidak memiliki URL tujuan.")
+
+      if (!next) {
+        throw new Error("Redirect media tidak memiliki URL tujuan.")
+      }
+
       current = await assertPublicUrl(new URL(next, current).toString())
       continue
     }
@@ -226,19 +308,93 @@ async function fetchMedia(value) {
     }
 
     const bytes = await readBytes(response)
-    const mime = finalMime(responseMime(response), bytes)
+
+    const mime = await detectRealMime({
+      headerMime: responseMime(response),
+      hintMime: hints.mimeHint,
+      extHint: hints.extHint,
+      url: current.toString(),
+      bytes
+    })
 
     if (!mime) {
-  return {
-    mime: "image/jpeg",
-    bytes
-  }
-}
+      if (looksLikeTextPayload(bytes)) {
+        throw new Error("URL media mengembalikan halaman HTML/teks, bukan file gambar.")
+      }
+
+      throw new Error("Format media harus JPG, PNG, atau WEBP.")
+    }
 
     return { mime, bytes }
   }
 
   throw new Error("Terlalu banyak redirect saat mengambil media.")
+}
+
+function decodeBase64Image(value) {
+  let raw = clean(value)
+
+  if (!raw) {
+    throw new Error("imageBase64 kosong.")
+  }
+
+  let mime = ""
+
+  const dataUrl = raw.match(/^data:([^;]+);base64,(.+)$/i)
+
+  if (dataUrl) {
+    mime = cleanMime(dataUrl[1])
+    raw = dataUrl[2]
+  }
+
+  raw = raw.replace(/\s+/g, "")
+
+  if (!raw) {
+    throw new Error("imageBase64 kosong.")
+  }
+
+  const bytes = Buffer.from(raw, "base64")
+
+  if (!bytes.length) {
+    throw new Error("imageBase64 tidak valid.")
+  }
+
+  if (bytes.length > MAX_INPUT_BYTES) {
+    throw new Error("Ukuran gambar maksimal 8 MB.")
+  }
+
+  return { mime, bytes }
+}
+
+async function sourceFromBase64(body) {
+  const base64 = clean(
+    body?.imageBase64 ||
+      body?.base64 ||
+      body?.fileBase64 ||
+      body?.mediaBase64 ||
+      "",
+    0
+  )
+
+  if (!base64) return null
+
+  const decoded = decodeBase64Image(base64)
+
+  const mime = await detectRealMime({
+    headerMime: decoded.mime,
+    hintMime: body?.mimeHint,
+    extHint: body?.extHint,
+    bytes: decoded.bytes
+  })
+
+  if (!mime) {
+    throw new Error("Format media harus JPG, PNG, atau WEBP.")
+  }
+
+  return {
+    mime,
+    bytes: decoded.bytes
+  }
 }
 
 async function parseRequest(request) {
@@ -247,9 +403,11 @@ async function parseRequest(request) {
   if (contentType.startsWith("multipart/form-data")) {
     const form = await request.formData()
     const file = form.get("file") || form.get("image") || form.get("media")
-    const mode = clean(form.get("mode") || form.get("type") || "image", 20).toLowerCase() === "sticker"
-      ? "sticker"
-      : "image"
+
+    const mode =
+      clean(form.get("mode") || form.get("type") || "image", 20).toLowerCase() === "sticker"
+        ? "sticker"
+        : "image"
 
     if (!file || typeof file.arrayBuffer !== "function") {
       throw new Error("Form data wajib berisi file, image, atau media.")
@@ -257,14 +415,32 @@ async function parseRequest(request) {
 
     const bytes = Buffer.from(await file.arrayBuffer())
 
-    if (!bytes.length) throw new Error("File kosong.")
-    if (bytes.length > MAX_INPUT_BYTES) throw new Error("Ukuran gambar maksimal 8 MB.")
+    if (!bytes.length) {
+      throw new Error("File kosong.")
+    }
 
-    const mime = finalMime(file.type || "", bytes)
+    if (bytes.length > MAX_INPUT_BYTES) {
+      throw new Error("Ukuran gambar maksimal 8 MB.")
+    }
 
-    if (!mime) throw new Error("Format media harus JPG, PNG, atau WEBP.")
+    const mime = await detectRealMime({
+      headerMime: file.type || "",
+      hintMime: form.get("mimeHint") || "",
+      extHint: form.get("extHint") || file.name || "",
+      bytes
+    })
 
-    return { mode, source: { mime, bytes } }
+    if (!mime) {
+      throw new Error("Format media harus JPG, PNG, atau WEBP.")
+    }
+
+    return {
+      mode,
+      source: {
+        mime,
+        bytes
+      }
+    }
   }
 
   let body
@@ -275,22 +451,33 @@ async function parseRequest(request) {
     throw new Error("Body request harus berupa JSON yang valid.")
   }
 
+  const mode =
+    clean(body?.mode || body?.type || "image", 20).toLowerCase() === "sticker"
+      ? "sticker"
+      : "image"
+
+  const base64Source = await sourceFromBase64(body)
+
+  if (base64Source) {
+    return {
+      mode,
+      source: base64Source
+    }
+  }
+
   const imageUrl = clean(body?.imageUrl || body?.url || "", 2048)
-  const mode = clean(body?.mode || body?.type || "image", 20).toLowerCase() === "sticker"
-    ? "sticker"
-    : "image"
 
-  if (!imageUrl) throw new Error("imageUrl wajib diisi.")
+  if (!imageUrl) {
+    throw new Error("imageUrl wajib diisi.")
+  }
 
-  const source = await fetchMedia(imageUrl)
-
-if (!source.mime && body?.mimeHint) {
-  source.mime = body.mimeHint
-}
-
-return {
-  mode,
-  source
+  return {
+    mode,
+    source: await fetchMedia(imageUrl, {
+      mimeHint: body?.mimeHint || "",
+      extHint: body?.extHint || ""
+    })
+  }
 }
 
 export async function POST(request) {
@@ -299,7 +486,12 @@ export async function POST(request) {
 
   try {
     const { mode, source } = await parseRequest(request)
-    const png = await renderFakeReact({ bytes: source.bytes, mime: source.mime, mode })
+
+    const png = await renderFakeReact({
+      bytes: source.bytes,
+      mime: source.mime,
+      mode
+    })
 
     await recordRequest("fakereact")
 
@@ -317,6 +509,7 @@ export async function POST(request) {
   } catch (error) {
     const message = clean(error?.message || "Gagal membuat fake react.", 500)
     console.error("FAKEREACT_ERROR", error)
+
     return fail(message || "Gagal membuat fake react.", 502)
   }
 }
